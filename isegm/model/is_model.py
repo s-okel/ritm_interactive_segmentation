@@ -85,7 +85,7 @@ class ISModel(nn.Module):
             if self.binary_prev_mask:
                 prev_mask = (prev_mask > 0.5).float()
 
-        image = self.normalization(image)
+        # image = self.normalization(image)  # since we have our own way of normalizing and that's already done
         return image, prev_mask
 
     def backbone_forward(self, image, coord_features=None):
