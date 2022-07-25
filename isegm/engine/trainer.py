@@ -91,7 +91,7 @@ class ISTrainer(object):
                                                     output_device=cfg.gpu_ids[0])
 
         if self.is_master:
-            logger.info(model)
+            # logger.info(model)
             logger.info(get_config_repr(model._config))
 
         self.device = cfg.device
@@ -343,6 +343,7 @@ class ISTrainer(object):
         gt_mask[gt_mask < 0] = 0.25
         gt_mask = draw_probmap(gt_mask)
         predicted_mask = draw_probmap(predicted_mask)
+        image_with_points = cv2.cvtColor(image_with_points, cv2.COLOR_GRAY2RGB)
         viz_image = np.hstack((image_with_points, gt_mask, predicted_mask)).astype(np.uint8)
 
         _save_image('instance_segmentation', viz_image[:, :, ::-1])
