@@ -1,5 +1,5 @@
 from isegm.utils.exp_imports.default import *
-MODEL_NAME = 'panc_hrnet18'
+MODEL_NAME = 'panc_hrnet18_iter'
 
 
 def main(cfg):
