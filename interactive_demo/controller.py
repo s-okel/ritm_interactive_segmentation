@@ -26,7 +26,8 @@ class InteractiveController:
         self.reset_predictor()
 
     def set_image(self, image):
-        self.image = image
+        self.image = image[:, :, 0]
+        self.image = self.image[:, :, None]
         self._result_mask = np.zeros(image.shape[:2], dtype=np.uint16)
         self.object_count = 0
         self.reset_last_object(update_image=False)

@@ -1,4 +1,4 @@
-INTERACTIVE_MODELS_PATH: "./weights"
+INTERACTIVE_MODELS_PATH: "."
 EXPS_PATH: "./experiments"
 
 # Evaluation datasets

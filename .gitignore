@@ -9,3 +9,4 @@ pretrained_models
 *.json
 venv/
 datasets/
+assets/test_imgs/panc
