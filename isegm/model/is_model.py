@@ -80,8 +80,8 @@ class ISModel(nn.Module):
     def prepare_input(self, image):
         prev_mask = None
         if self.with_prev_mask:
-            prev_mask = image[:, 3:, :, :]
-            image = image[:, :3, :, :]
+            prev_mask = image[:, 1:, :, :]  # 1 instead of 3 for grayscale image
+            image = image[:, :1, :, :]
             if self.binary_prev_mask:
                 prev_mask = (prev_mask > 0.5).float()
 
