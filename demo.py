@@ -13,11 +13,17 @@ def main():
 
     torch.backends.cudnn.deterministic = True
     checkpoint_path = utils.find_checkpoint(cfg.INTERACTIVE_MODELS_PATH, args.checkpoint)
-    model = utils.load_is_model(checkpoint_path, args.device, cpu_dist_maps=True)
+
+    if 'panc' in checkpoint_path:
+        grayscale = True
+    else:
+        grayscale = False
+
+    model = utils.load_is_model(checkpoint_path, args.device, cpu_dist_maps=True, grayscale=grayscale)
 
     root = tk.Tk()
     root.minsize(960, 480)
-    app = InteractiveDemoApp(root, args, model)
+    app = InteractiveDemoApp(root, args, model, grayscale=grayscale)
     root.deiconify()
     app.mainloop()
 

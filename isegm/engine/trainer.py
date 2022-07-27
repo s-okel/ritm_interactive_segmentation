@@ -34,6 +34,7 @@ class ISTrainer(object):
                  max_num_next_clicks=0,
                  click_models=None,
                  prev_mask_drop_prob=0.0,
+                 grayscale=True
                  ):
         self.cfg = cfg
         self.model_cfg = model_cfg
@@ -43,6 +44,7 @@ class ISTrainer(object):
         self.tb_dump_period = tb_dump_period
         self.net_inputs = net_inputs
         self.max_num_next_clicks = max_num_next_clicks
+        self.grayscale = grayscale
 
         self.click_models = click_models
         self.prev_mask_drop_prob = prev_mask_drop_prob
@@ -356,7 +358,8 @@ class ISTrainer(object):
         gt_mask[gt_mask < 0] = 0.25
         gt_mask = draw_probmap(gt_mask)
         predicted_mask = draw_probmap(predicted_mask)
-        image_with_points = cv2.cvtColor(image_with_points, cv2.COLOR_GRAY2RGB)
+        if self.grayscale:
+            image_with_points = cv2.cvtColor(image_with_points, cv2.COLOR_GRAY2RGB)
         viz_image = np.hstack((image_with_points, gt_mask, predicted_mask)).astype(np.uint8)
 
         _save_image('instance_segmentation', viz_image[:, :, ::-1])

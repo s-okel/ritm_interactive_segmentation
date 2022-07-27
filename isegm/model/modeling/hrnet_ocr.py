@@ -154,14 +154,20 @@ class HighResolutionModule(nn.Module):
 
 class HighResolutionNet(nn.Module):
     def __init__(self, width, num_classes, ocr_width=256, small=False,
-                 norm_layer=nn.BatchNorm2d, align_corners=True):
+                 norm_layer=nn.BatchNorm2d, align_corners=True, grayscale=True):
         super(HighResolutionNet, self).__init__()
         self.norm_layer = norm_layer
         self.width = width
         self.ocr_width = ocr_width
         self.align_corners = align_corners
+        self.grayscale = grayscale
 
-        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=2, padding=1, bias=False)
+        if self.grayscale:
+            in_channels = 1
+        else:
+            in_channels = 3
+
+        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=3, stride=2, padding=1, bias=False)
         # 1, because grayscale image(?), but then pretrained weights don't match anymore
         self.bn1 = norm_layer(64)
         self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1, bias=False)
@@ -414,7 +420,8 @@ class HighResolutionNet(nn.Module):
                            if k in model_dict.keys()}
 
         model_dict.update(pretrained_dict)
-        # reduce first layer weights to 1 channel
-        one_ch_weight = model_dict['conv1.weight'][:, 0, :, :]
-        model_dict['conv1.weight'] = one_ch_weight[:, None, :, :]
+        if self.grayscale:
+            # reduce first layer weights to 1 channel
+            one_ch_weight = model_dict['conv1.weight'][:, 0, :, :]
+            model_dict['conv1.weight'] = one_ch_weight[:, None, :, :]
         self.load_state_dict(model_dict)

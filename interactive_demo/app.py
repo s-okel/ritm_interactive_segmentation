@@ -12,7 +12,7 @@ from interactive_demo.wrappers import BoundedNumericalEntry, FocusHorizontalScal
 
 
 class InteractiveDemoApp(ttk.Frame):
-    def __init__(self, master, args, model):
+    def __init__(self, master, args, model, grayscale=True):
         super().__init__(master)
         self.master = master
         master.title("Reviving Iterative Training with Mask Guidance for Interactive Segmentation")
@@ -28,7 +28,8 @@ class InteractiveDemoApp(ttk.Frame):
 
         self.controller = InteractiveController(model, args.device,
                                                 predictor_params={'brs_mode': 'NoBRS'},
-                                                update_image_callback=self._update_image)
+                                                update_image_callback=self._update_image,
+                                                grayscale=grayscale)
 
         self._init_state()
         self._add_menu()
@@ -44,6 +45,7 @@ class InteractiveDemoApp(ttk.Frame):
         self.state['predictor_params']['net_clicks_limit'].trace(mode='w', callback=self._change_brs_mode)
         self.state['lbfgs_max_iters'].trace(mode='w', callback=self._change_brs_mode)
         self._change_brs_mode()
+        self.grayscale = grayscale
 
     def _init_state(self):
         self.state = {

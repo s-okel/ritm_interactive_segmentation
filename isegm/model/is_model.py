@@ -11,13 +11,14 @@ class ISModel(nn.Module):
                  norm_radius=260, use_disks=False, cpu_dist_maps=False,
                  clicks_groups=None, with_prev_mask=False, use_leaky_relu=False,
                  binary_prev_mask=False, conv_extend=False, norm_layer=nn.BatchNorm2d,
-                 norm_mean_std=([.485, .456, .406], [.229, .224, .225])):
+                 norm_mean_std=([.485, .456, .406], [.229, .224, .225]), grayscale=True):
         super().__init__()
         self.with_aux_output = with_aux_output
         self.clicks_groups = clicks_groups
         self.with_prev_mask = with_prev_mask
         self.binary_prev_mask = binary_prev_mask
         self.normalization = BatchImageNormalize(norm_mean_std[0], norm_mean_std[1])
+        self.grayscale = grayscale
 
         self.coord_feature_ch = 2
         if clicks_groups is not None:
@@ -59,7 +60,7 @@ class ISModel(nn.Module):
                                       cpu_mode=cpu_dist_maps, use_disks=use_disks)
 
     def forward(self, image, points):
-        image, prev_mask = self.prepare_input(image)
+        image, prev_mask = self.prepare_input(image, self.grayscale)
         coord_features = self.get_coord_features(image, prev_mask, points)
 
         if self.rgb_conv is not None:
@@ -77,15 +78,21 @@ class ISModel(nn.Module):
 
         return outputs
 
-    def prepare_input(self, image):
+    def prepare_input(self, image, grayscale=True):
         prev_mask = None
         if self.with_prev_mask:
-            prev_mask = image[:, 1:, :, :]  # 1 instead of 3 for grayscale image
-            image = image[:, :1, :, :]
+            if grayscale:
+                prev_mask = image[:, 1:, :, :]  # 1 instead of 3 for grayscale image
+                image = image[:, :1, :, :]
+            else:
+                prev_mask = image[:, 3:, :, :]
+                image = image[:, :3, :, :]
+
             if self.binary_prev_mask:
                 prev_mask = (prev_mask > 0.5).float()
 
-        # image = self.normalization(image)  # since we have our own way of normalizing and that's already done
+        if not grayscale:  # since we have our own way of normalizing and that's already done
+            image = self.normalization(image)
         return image, prev_mask
 
     def backbone_forward(self, image, coord_features=None):

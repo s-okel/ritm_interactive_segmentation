@@ -19,23 +19,29 @@ def get_time_metrics(all_ious, elapsed_time):
     return mean_spc, mean_spi
 
 
-def load_is_model(checkpoint, device, **kwargs):
+def load_is_model(checkpoint, device, grayscale=True, **kwargs):
     if isinstance(checkpoint, (str, Path)):
         state_dict = torch.load(checkpoint, map_location='cpu')
     else:
         state_dict = checkpoint
+    # print(state_dict['state_dict'].keys())
+
+    if grayscale:
+        # reduce first layer weights to 1 channel
+        one_ch_weight = state_dict['state_dict']['feature_extractor.conv1.weight'][:, 0, :, :]
+        state_dict['state_dict']['feature_extractor.conv1.weight'] = one_ch_weight[:, None, :, :]
 
     if isinstance(state_dict, list):
-        model = load_single_is_model(state_dict[0], device, **kwargs)
-        models = [load_single_is_model(x, device, **kwargs) for x in state_dict]
+        model = load_single_is_model(state_dict[0], device, grayscale=grayscale, **kwargs)
+        models = [load_single_is_model(x, device, grayscale=grayscale, **kwargs) for x in state_dict]
 
         return model, models
     else:
-        return load_single_is_model(state_dict, device, **kwargs)
+        return load_single_is_model(state_dict, device, grayscale=grayscale, **kwargs)
 
 
-def load_single_is_model(state_dict, device, **kwargs):
-    model = load_model(state_dict['config'], **kwargs)
+def load_single_is_model(state_dict, device, grayscale=True, **kwargs):
+    model = load_model(state_dict['config'], grayscale=grayscale, **kwargs)
     model.load_state_dict(state_dict['state_dict'], strict=False)
 
     for param in model.parameters():
