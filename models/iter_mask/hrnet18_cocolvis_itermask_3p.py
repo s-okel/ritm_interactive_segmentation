@@ -14,7 +14,7 @@ def init_model(cfg):
 
     model = HRNetModel(width=18, ocr_width=64, with_aux_output=True, use_leaky_relu=True,
                        use_rgb_conv=False, use_disks=True, norm_radius=5,
-                       with_prev_mask=True, grayscale=False)
+                       with_prev_mask=True, one_input_channel=False)
 
     model.to(cfg.device)
     model.apply(initializer.XavierGluon(rnd_type='gaussian', magnitude=2.0))

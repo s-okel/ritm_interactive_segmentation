@@ -13,7 +13,7 @@ def init_model(cfg):
     model_cfg.num_max_points = 24
 
     model = HRNetModel(width=18, ocr_width=64, with_aux_output=True, use_leaky_relu=True,
-                       use_rgb_conv=False, use_disks=True, norm_radius=5, with_prev_mask=True)
+                       use_rgb_conv=False, use_disks=True, norm_radius=5, with_prev_mask=True, one_input_channel=False)
 
     model.to(cfg.device)
     model.apply(initializer.XavierGluon(rnd_type='gaussian', magnitude=2.0))
@@ -60,6 +60,7 @@ def train(model, cfg, model_cfg):
         min_object_area=80,
         keep_background_prob=0.01,
         points_sampler=points_sampler,
+        one_input_channel=False
     )
 
     valset = PancDataset(
@@ -67,7 +68,8 @@ def train(model, cfg, model_cfg):
         augmentator=val_augmentator,
         min_object_area=80,
         points_sampler=points_sampler,
-        epoch_len=500
+        epoch_len=500,
+        one_input_channel=False
     )
 
     optimizer_params = {
@@ -86,5 +88,5 @@ def train(model, cfg, model_cfg):
                         metrics=[AdaptiveIoU()],
                         max_interactive_points=model_cfg.num_max_points,
                         max_num_next_clicks=3,
-                        grayscale=True)
+                        one_input_channel=False)
     trainer.run(num_epochs=220)

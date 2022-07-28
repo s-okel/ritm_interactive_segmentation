@@ -15,15 +15,15 @@ def main():
     checkpoint_path = utils.find_checkpoint(cfg.INTERACTIVE_MODELS_PATH, args.checkpoint)
 
     if 'panc' in checkpoint_path:
-        grayscale = True
+        one_input_channel = True
     else:
-        grayscale = False
+        one_input_channel = False
 
-    model = utils.load_is_model(checkpoint_path, args.device, cpu_dist_maps=True, grayscale=grayscale)
+    model = utils.load_is_model(checkpoint_path, args.device, cpu_dist_maps=True, one_input_channel=one_input_channel)
 
     root = tk.Tk()
     root.minsize(960, 480)
-    app = InteractiveDemoApp(root, args, model, grayscale=grayscale)
+    app = InteractiveDemoApp(root, args, model, one_input_channel=one_input_channel)
     root.deiconify()
     app.mainloop()
 

@@ -41,7 +41,7 @@ def serialize(init):
     return new_init
 
 
-def load_model(config, grayscale=True, **kwargs):
+def load_model(config, one_input_channel=True, **kwargs):
     model_class = get_class_from_str(config['class'])
     model_default_params = get_default_params(model_class)
 
@@ -59,7 +59,7 @@ def load_model(config, grayscale=True, **kwargs):
             continue
         model_args[pname] = value
 
-    model_args['grayscale'] = grayscale
+    model_args['one_input_channel'] = one_input_channel
 
     model_args.update(kwargs)
     print(model_args)

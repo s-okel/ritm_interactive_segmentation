@@ -8,5 +8,7 @@ pretrained_models
 *.yml
 *.json
 venv/
-datasets/
+datasets/GrabCut
+datasets/Panc
+datasets/SBD
 assets/test_imgs/panc
