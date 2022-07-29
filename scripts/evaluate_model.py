@@ -105,7 +105,7 @@ def main():
         dataset = utils.get_dataset(dataset_name, cfg)
 
         for checkpoint_path in checkpoints_list:
-            model = utils.load_is_model(checkpoint_path, args.device, one_input_channel=True)
+            model = utils.load_is_model(checkpoint_path, args.device, one_input_channel=cfg.one_input_channel)
 
             predictor_params, zoomin_params = get_predictor_and_zoomin_params(args, dataset_name)
             predictor = get_predictor(model, args.mode, args.device,
@@ -113,7 +113,7 @@ def main():
                                       predictor_params=predictor_params,
                                       zoom_in_params=zoomin_params)
 
-            vis_callback = get_prediction_vis_callback(logs_path, dataset_name, args.thresh) if args.vis_preds else None
+            vis_callback = get_prediction_vis_callback(logs_path, dataset_name, args.thresh, cfg.one_input_channel) if args.vis_preds else None
             dataset_results = evaluate_dataset(dataset, predictor, pred_thr=args.thresh,
                                                max_iou_thr=args.target_iou,
                                                min_clicks=args.min_n_clicks,
@@ -266,14 +266,14 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
     np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.npy', all_ious_np)
 
 
-def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh):
+def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_channel=False):
     save_path = logs_path / 'predictions_vis' / dataset_name
     save_path.mkdir(parents=True, exist_ok=True)
 
     def callback(image, gt_mask, pred_probs, sample_id, click_indx, clicks_list):
         sample_path = save_path / f'{sample_id}_{click_indx}.jpg'
         prob_map = draw_probmap(pred_probs)
-        image_with_mask = draw_with_blend_and_clicks(image, pred_probs > prob_thresh, clicks_list=clicks_list)
+        image_with_mask = draw_with_blend_and_clicks(image, pred_probs > prob_thresh, clicks_list=clicks_list, one_input_channel=one_input_channel)
         cv2.imwrite(str(sample_path), np.concatenate((image_with_mask, prob_map), axis=1)[:, :, ::-1])
 
     return callback

@@ -109,7 +109,7 @@ def get_boundaries(instances_masks, boundaries_width=1):
     
  
 def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None, pos_color=(0, 255, 0),
-                               neg_color=(255, 0, 0), radius=4):
+                               neg_color=(255, 0, 0), radius=4, one_input_channel=False):
     result = img.copy()
 
     if mask is not None:
@@ -117,6 +117,8 @@ def draw_with_blend_and_clicks(img, mask=None, alpha=0.6, clicks_list=None, pos_
         rgb_mask = palette[mask.astype(np.uint8)]
 
         mask_region = (mask > 0).astype(np.uint8)
+        if one_input_channel:
+            result = result[:, :, np.newaxis]
         result = result * (1 - mask_region[:, :, np.newaxis]) + \
             (1 - alpha) * mask_region[:, :, np.newaxis] * result + \
             alpha * rgb_mask
