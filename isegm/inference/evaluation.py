@@ -13,20 +13,24 @@ except NameError:
     from tqdm import tqdm
 
 
-def evaluate_dataset(dataset, predictor, **kwargs):
+def evaluate_dataset(dataset, predictor, max_clicks, **kwargs):
     all_ious = []
+    all_ious_np = np.zeros((len(dataset), max_clicks))
+    all_ious_np.fill(np.nan)
 
     start_time = time()
     for index in tqdm(range(len(dataset)), leave=False):
         sample = dataset.get_sample(index)
 
         _, sample_ious, _ = evaluate_sample(sample.image, sample.gt_mask, predictor,
-                                            sample_id=index, **kwargs)
+                                            sample_id=index, max_clicks=max_clicks, **kwargs)
+        all_ious_np[index, 0:len(sample_ious)] = sample_ious
         all_ious.append(sample_ious)
+
     end_time = time()
     elapsed_time = end_time - start_time
 
-    return all_ious, elapsed_time
+    return all_ious, elapsed_time, all_ious_np
 
 
 def evaluate_sample(image, gt_mask, predictor, max_iou_thr,
@@ -52,5 +56,4 @@ def evaluate_sample(image, gt_mask, predictor, max_iou_thr,
 
             if iou >= max_iou_thr and click_indx + 1 >= min_clicks:
                 break
-
         return clicker.clicks_list, np.array(ious_list, dtype=np.float32), pred_probs

@@ -60,7 +60,8 @@ class ISModel(nn.Module):
                                       cpu_mode=cpu_dist_maps, use_disks=use_disks)
 
     def forward(self, image, points):
-        image, prev_mask = self.prepare_input(image, self.one_input_channel)
+        image, prev_mask = self.prepare_input(image)
+
         coord_features = self.get_coord_features(image, prev_mask, points)
 
         if self.rgb_conv is not None:
@@ -78,10 +79,10 @@ class ISModel(nn.Module):
 
         return outputs
 
-    def prepare_input(self, image, one_input_channel=True):
+    def prepare_input(self, image):
         prev_mask = None
         if self.with_prev_mask:
-            if one_input_channel:
+            if self.one_input_channel:
                 prev_mask = image[:, 1:, :, :]  # 1 instead of 3 for one_input_channel image
                 image = image[:, :1, :, :]
             else:
@@ -91,7 +92,7 @@ class ISModel(nn.Module):
             if self.binary_prev_mask:
                 prev_mask = (prev_mask > 0.5).float()
 
-        if not one_input_channel:  # since we have our own way of normalizing and that's already done
+        if not self.one_input_channel:  # since we have our own way of normalizing and that's already done
             image = self.normalization(image)
         return image, prev_mask
 

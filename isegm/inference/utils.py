@@ -68,7 +68,7 @@ def get_dataset(dataset_name, cfg):
     elif dataset_name == 'COCO_MVal':
         dataset = DavisDataset(cfg.COCO_MVAL_PATH)
     elif dataset_name == 'Panc':
-        dataset = PancDataset('val')
+        dataset = PancDataset('val', one_input_channel=cfg.one_input_channel)
     else:
         dataset = None
 

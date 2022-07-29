@@ -94,6 +94,7 @@ def main():
     args, cfg = parse_args()
 
     checkpoints_list, logs_path, logs_prefix = get_checkpoints_list_and_logs_path(args, cfg)
+    cfg.one_input_channel = True
     logs_path.mkdir(parents=True, exist_ok=True)
 
     single_model_eval = len(checkpoints_list) == 1
@@ -104,7 +105,7 @@ def main():
         dataset = utils.get_dataset(dataset_name, cfg)
 
         for checkpoint_path in checkpoints_list:
-            model = utils.load_is_model(checkpoint_path, args.device)
+            model = utils.load_is_model(checkpoint_path, args.device, one_input_channel=True)
 
             predictor_params, zoomin_params = get_predictor_and_zoomin_params(args, dataset_name)
             predictor = get_predictor(model, args.mode, args.device,
@@ -189,7 +190,7 @@ def get_checkpoints_list_and_logs_path(args, cfg):
 
 def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_results,
                  save_ious=False, print_header=True, single_model_eval=False):
-    all_ious, elapsed_time = dataset_results
+    all_ious, elapsed_time, _ = dataset_results
     mean_spc, mean_spi = utils.get_time_metrics(all_ious, elapsed_time)
 
     iou_thrs = np.arange(0.8, min(0.95, args.target_iou) + 0.001, 0.05).tolist()
@@ -243,7 +244,7 @@ def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_r
 
 
 def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_results, model_name=None):
-    all_ious, _ = dataset_results
+    all_ious, _, all_ious_np = dataset_results
 
     name_prefix = ''
     if logs_prefix:
@@ -253,6 +254,7 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
         model_name = str(logs_path.relative_to(args.logs_path)) + ':' + logs_prefix if logs_prefix else logs_path.stem
 
     pkl_path = logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.pickle'
+    print(f"pickle save path: {pkl_path}")
     pkl_path.parent.mkdir(parents=True, exist_ok=True)
     with pkl_path.open('wb') as f:
         pickle.dump({
@@ -260,6 +262,8 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
             'model_name': f'{model_name}_{args.mode}',
             'all_ious': all_ious
         }, f)
+
+    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.npy', all_ious_np)
 
 
 def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh):

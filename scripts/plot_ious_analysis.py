@@ -112,14 +112,14 @@ def get_target_file_path(plots_path, dataset_name):
 
 def get_files_list(args, cfg):
     if args.folder is not None:
-        files_list = Path(args.folder).glob('*.pickle')
+        files_list = Path(args.folder).glob('*.pkl')
     elif args.files is not None:
         files_list = args.files
     elif args.model_dirs is not None:
         files_list = []
         for folder in args.model_dirs:
             folder = Path(folder) / 'plots'
-            files_list.extend(folder.glob('*.pickle'))
+            files_list.extend(folder.glob('*.pkl'))
     elif args.exp_models is not None:
         files_list = []
         for rel_exp_path in args.exp_models:
@@ -128,7 +128,7 @@ def get_files_list(args, cfg):
             candidates = list(exp_path_prefix.parent.glob(exp_path_prefix.stem + '*'))
             assert len(candidates) == 1, "Invalid experiment path."
             exp_path = candidates[0]
-            files_list.extend(sorted((exp_path / 'plots').glob(checkpoint_prefix + '*.pickle')))
+            files_list.extend(sorted((exp_path / 'plots').glob(checkpoint_prefix + '*.pkl')))
 
     if args.mode is not None:
         files_list = [file for file in files_list
