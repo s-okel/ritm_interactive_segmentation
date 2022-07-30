@@ -7,14 +7,14 @@ from torch.utils.data import DataLoader
 
 
 class PancDataset(ISDataset):
-    def __init__(self, split, one_input_channel=False, **kwargs):
+    def __init__(self, split, label, one_input_channel=False, **kwargs):
         super(PancDataset, self).__init__(**kwargs)
         assert split in ['train', 'val']
         self.name = "Panc"
         self.one_input_channel = one_input_channel
 
-        self.data = torch.load(f"./datasets/Panc/{split}_slices.pt")
-        self.dataset_samples = range(len(self.data[0]))  # 4790
+        self.data = torch.load(f"./datasets/Panc/{label}_{split}_slices.pt")
+        self.dataset_samples = range(len(self.data[0]))
 
     def get_sample(self, index) -> DSample:
         img = np.array(self.data[0, index]).astype("uint8")
@@ -26,7 +26,7 @@ class PancDataset(ISDataset):
 
 
 if __name__ == "__main__":
-    dataset = PancDataset('val', one_input_channel=False)
+    dataset = PancDataset('val', 'pancreas', one_input_channel=False)
     dataloader = DataLoader(dataset)
     x = next(iter(dataloader))
     print(x)
