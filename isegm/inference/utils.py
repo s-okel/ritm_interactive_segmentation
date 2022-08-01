@@ -19,7 +19,7 @@ def get_time_metrics(all_ious, elapsed_time):
     return mean_spc, mean_spi
 
 
-def load_is_model(checkpoint, device, one_input_channel=True, **kwargs):
+def load_is_model(checkpoint, device, one_input_channel=False, **kwargs):
     if isinstance(checkpoint, (str, Path)):
         state_dict = torch.load(checkpoint, map_location='cpu')
     else:
@@ -40,7 +40,7 @@ def load_is_model(checkpoint, device, one_input_channel=True, **kwargs):
         return load_single_is_model(state_dict, device, one_input_channel=one_input_channel, **kwargs)
 
 
-def load_single_is_model(state_dict, device, one_input_channel=True, **kwargs):
+def load_single_is_model(state_dict, device, one_input_channel=False, **kwargs):
     model = load_model(state_dict['config'], one_input_channel=one_input_channel, **kwargs)
     model.load_state_dict(state_dict['state_dict'], strict=False)
 
@@ -82,7 +82,9 @@ def get_iou(gt_mask, pred_mask, ignore_label=-1):
     intersection = np.logical_and(np.logical_and(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
     union = np.logical_and(np.logical_or(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
 
-    return intersection / union
+    dice_score = 2 * intersection / (gt_mask.sum() + pred_mask.sum())
+
+    return intersection / union, dice_score
 
 
 def compute_noc_metric(all_ious, iou_thrs, max_clicks=20):
