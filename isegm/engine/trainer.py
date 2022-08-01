@@ -34,7 +34,7 @@ class ISTrainer(object):
                  max_num_next_clicks=0,
                  click_models=None,
                  prev_mask_drop_prob=0.0,
-                 one_input_channel=True
+                 one_input_channel=False
                  ):
         self.cfg = cfg
         self.model_cfg = model_cfg
@@ -223,7 +223,7 @@ class ISTrainer(object):
             val_loss += batch_losses_logging['overall'].item()
 
             if self.is_master:
-                tbar.set_description(f'Epoch {epoch}, validation loss: {val_loss/(i + 1):.4f}')
+                tbar.set_description(f'Epoch {epoch}, validation loss: {val_loss / (i + 1):.4f}')
                 for metric in self.val_metrics:
                     metric.log_states(self.sw, f'{log_prefix}Metrics/{metric.name}', global_step)
 
@@ -236,19 +236,8 @@ class ISTrainer(object):
                 self.sw.add_scalar(tag=f'{log_prefix}Metrics/{metric.name}', value=metric.get_epoch_value(),
                                    global_step=epoch, disable_avg=True)
 
-        save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix,
-                        epoch=None, multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}-val-loss-{val_loss / (i + 1):.2f}")
-
-        if isinstance(self.checkpoint_interval, (list, tuple)):
-            checkpoint_interval = [x for x in self.checkpoint_interval if x[0] <= epoch][-1][1]
-        else:
-            checkpoint_interval = self.checkpoint_interval
-
-        """
-        if epoch % checkpoint_interval == 0:
-            save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix,
-                            epoch=epoch, multi_gpu=self.cfg.multi_gpu)
-        """
+        save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix, epoch=None,
+                        multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}-val-loss-{val_loss / len(tbar):.2f}")
 
         self.epoch_val_loss.append(val_loss / len(tbar))
         with open(str(self.cfg.CHECKPOINTS_PATH) + r"\val_losses.txt", "w") as f:

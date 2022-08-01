@@ -9,7 +9,7 @@ from isegm.model.modifiers import LRMult
 class HRNetModel(ISModel):
     @serialize
     def __init__(self, width=48, ocr_width=256, small=False, backbone_lr_mult=0.1,
-                 norm_layer=nn.BatchNorm2d, one_input_channel=True, **kwargs):
+                 norm_layer=nn.BatchNorm2d, one_input_channel=False, **kwargs):
         super().__init__(norm_layer=norm_layer, one_input_channel=one_input_channel, **kwargs)
 
         self.feature_extractor = HighResolutionNet(width=width, ocr_width=ocr_width, small=small,

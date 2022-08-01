@@ -12,7 +12,7 @@ from interactive_demo.wrappers import BoundedNumericalEntry, FocusHorizontalScal
 
 
 class InteractiveDemoApp(ttk.Frame):
-    def __init__(self, master, args, model, one_input_channel=True):
+    def __init__(self, master, args, model, one_input_channel=False):
         super().__init__(master)
         self.master = master
         master.title("Reviving Iterative Training with Mask Guidance for Interactive Segmentation")

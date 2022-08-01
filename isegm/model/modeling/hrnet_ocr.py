@@ -154,7 +154,7 @@ class HighResolutionModule(nn.Module):
 
 class HighResolutionNet(nn.Module):
     def __init__(self, width, num_classes, ocr_width=256, small=False,
-                 norm_layer=nn.BatchNorm2d, align_corners=True, one_input_channel=True):
+                 norm_layer=nn.BatchNorm2d, align_corners=True, one_input_channel=False):
         super(HighResolutionNet, self).__init__()
         self.norm_layer = norm_layer
         self.width = width
