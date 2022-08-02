@@ -57,7 +57,7 @@ def train(model, cfg, model_cfg):
                                        max_num_merged_objects=2)
 
     trainset = PancDataset(
-        split='val',
+        split='train',
         label=label,
         one_input_channel=False,
         augmentator=train_augmentator,

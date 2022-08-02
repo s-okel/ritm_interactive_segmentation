@@ -196,7 +196,6 @@ class ISTrainer(object):
             f.write(str(self.epoch_train_loss))
 
     def validation(self, epoch):
-        # logger.info("Validation")
         if self.sw is None and self.is_master:
             self.sw = SummaryWriterAvg(log_dir=str(self.cfg.LOGS_PATH),
                                        flush_secs=10, dump_period=self.tb_dump_period)
@@ -212,21 +211,16 @@ class ISTrainer(object):
 
         self.net.eval()
         for i, batch_data in enumerate(tbar):
-            # logger.info(f"batch data images: {batch_data['images'].shape}, instances: {batch_data['instances'].shape}"
-            #       f", points: {batch_data['points'].shape}")
             global_step = epoch * len(self.val_data) + i
-            # logger.info(f"global step: {global_step}")
             loss, batch_losses_logging, splitted_batch_data, outputs = \
                 self.batch_forward(batch_data, validation=True)
 
-            # logger.info(f"after batch forward")
             batch_losses_logging['overall'] = loss
             reduce_loss_dict(batch_losses_logging)
             for loss_name, loss_value in batch_losses_logging.items():
                 losses_logging[loss_name].append(loss_value.item())
 
             val_loss += batch_losses_logging['overall'].item()
-            # logger.info(f"val loss: {val_loss}")
 
             if self.is_master:
                 tbar.set_description(f'Epoch {epoch}, validation loss: {val_loss / (i + 1):.4f}')
@@ -241,23 +235,15 @@ class ISTrainer(object):
             for metric in self.val_metrics:
                 self.sw.add_scalar(tag=f'{log_prefix}Metrics/{metric.name}', value=metric.get_epoch_value(),
                                    global_step=epoch, disable_avg=True)
-<<<<<<< HEAD
-        # logger.info(f"Saving checkpoint...")
+
         if (epoch + 1) % 10 == 0:
             save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix, epoch=None,
                             multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}-val-loss-{val_loss / len(tbar):.2f}")
-        # logger.info("Done.")
-=======
 
-        save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix, epoch=None,
-                        multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}-val-loss-{val_loss / len(tbar):.2f}")
->>>>>>> 05ed920c25b50e1a00ebab488c5784b133733b5f
 
         self.epoch_val_loss.append(val_loss / len(tbar))
-        # logger.info(f"Writing val losses...")
         with open(str(self.cfg.CHECKPOINTS_PATH) + r"\val_losses.txt", "w") as f:
             f.write(str(self.epoch_val_loss))
-        # logger.info("Done.")
 
     def batch_forward(self, batch_data, validation=False):
         metrics = self.val_metrics if validation else self.train_metrics
