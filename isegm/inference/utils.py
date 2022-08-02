@@ -82,7 +82,9 @@ def get_iou(gt_mask, pred_mask, ignore_label=-1):
     intersection = np.logical_and(np.logical_and(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
     union = np.logical_and(np.logical_or(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
 
-    return intersection / union
+    dice_score = 2 * intersection / (gt_mask.sum() + pred_mask.sum())
+
+    return intersection / union, dice_score
 
 
 def compute_noc_metric(all_ious, iou_thrs, max_clicks=20):

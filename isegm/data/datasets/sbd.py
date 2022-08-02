@@ -9,6 +9,10 @@ from isegm.utils.misc import get_bbox_from_mask, get_labels_with_sizes
 from isegm.data.base import ISDataset
 from isegm.data.sample import DSample
 
+import torch
+from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+
 
 class SBDDataset(ISDataset):
     def __init__(self, dataset_path, split='train', buggy_mask_thresh=0.08, **kwargs):
@@ -109,3 +113,22 @@ class SBDEvaluationDataset(ISDataset):
                 pkl.dump(images_and_ids_list, fp)
 
         return images_and_ids_list
+
+
+if __name__ == "__main__":
+    dataset = SBDDataset("C:/Users/320151982/source/repos/ritm_interactive_segmentation/datasets/SBD")
+    dataloader = DataLoader(dataset, shuffle=True)
+    x = next(iter(dataloader))
+    print(x.keys())
+    print(x['images'].shape)
+    print(x['points'].shape)
+    print(x['instances'].shape)
+
+    image = torch.moveaxis(x['images'][0], 0, -1)
+    instance = x['instances'][0, 0]
+
+    f, axs = plt.subplots(1, 2)
+    axs[0].imshow(image)
+    axs[1].imshow(image)
+    axs[1].imshow(instance, alpha=0.2 * instance, cmap="Reds")
+    plt.show()

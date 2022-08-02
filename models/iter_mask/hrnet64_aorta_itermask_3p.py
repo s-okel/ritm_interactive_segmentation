@@ -4,11 +4,6 @@ MODEL_NAME = f'{label}_hrnet64_iter'
 
 
 def main(cfg):
-    logger.info("---------------------------------------------------------------------")
-    logger.info("---------------------------------------------------------------------")
-    logger.info("-----------------" + label + " -----------------")
-    logger.info("---------------------------------------------------------------------")
-    logger.info("---------------------------------------------------------------------")
     model, model_cfg = init_model(cfg)
     train(model, cfg, model_cfg)
 
@@ -62,7 +57,7 @@ def train(model, cfg, model_cfg):
                                        max_num_merged_objects=2)
 
     trainset = PancDataset(
-        split='train',
+        split='val',
         label=label,
         one_input_channel=False,
         augmentator=train_augmentator,
