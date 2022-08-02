@@ -231,7 +231,7 @@ def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_r
     if save_ious:
         ious_path = logs_path / 'ious' / (logs_prefix if logs_prefix else '')
         ious_path.mkdir(parents=True, exist_ok=True)
-        with open(ious_path / f'{dataset_name}_{args.eval_mode}_{args.mode}_{args.n_clicks}.pkl', 'wb') as fp:
+        with open(ious_path / f'{dataset_name}_{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.pkl', 'wb') as fp:
             pickle.dump(all_ious, fp)
 
     name_prefix = ''
@@ -240,7 +240,7 @@ def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_r
         if not single_model_eval:
             name_prefix += f'{dataset_name}_'
 
-    log_path = logs_path / f'{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.txt'
+    log_path = logs_path / f'{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.txt'
     if log_path.exists():
         with open(log_path, 'a') as f:
             f.write(table_row + '\n')
@@ -261,7 +261,7 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
     if model_name is None:
         model_name = str(logs_path.relative_to(args.logs_path)) + ':' + logs_prefix if logs_prefix else logs_path.stem
 
-    pkl_path = logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.pickle'
+    pkl_path = logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.pickle'
     print(f"pickle save path: {pkl_path}")
     pkl_path.parent.mkdir(parents=True, exist_ok=True)
     with pkl_path.open('wb') as f:
@@ -271,8 +271,8 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
             'all_ious': all_ious
         }, f)
 
-    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.npy', all_ious_np)
-    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}.npy', all_dice_scores)
+    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.npy', all_ious_np)
+    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.npy', all_dice_scores)
 
 
 def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_channel=False):
