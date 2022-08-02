@@ -24,3 +24,4 @@ IMAGENET_PRETRAINED_MODELS:
   HRNETV2_W32: "./weights/hrnetv2_w32_imagenet_pretrained.pth"
   HRNETV2_W40: "./weights/hrnetv2_w40_imagenet_pretrained.pth"
   HRNETV2_W48: "./weights/hrnetv2_w48_imagenet_pretrained.pth"
+  HRNETV2_W64: "./weights/hrnetv2_w64_imagenet_pretrained.pth"

@@ -48,7 +48,7 @@ def evaluate_sample(image, gt_mask, predictor, max_iou_thr,
             pred_probs = predictor.get_prediction(clicker)
             pred_mask = pred_probs > pred_thr
 
-            if callback is not None:
+            if callback is not None and sample_id % 1000 == 0:
                 callback(image, gt_mask, pred_probs, sample_id, click_indx, clicker.clicks_list)
 
             iou = utils.get_iou(gt_mask, pred_mask)

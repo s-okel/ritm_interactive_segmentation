@@ -36,6 +36,13 @@ def parse_args():
                              'Datasets are separated by a comma. Possible choices: '
                              'GrabCut, Berkeley, DAVIS, SBD, PascalVOC')
 
+    parser.add_argument('--structure', type=str, default=None,
+                       help='In case of the pancreas dataset, which anatomical structure dataset should be chosen.'
+                            'E.g. aorta or common bile duct')
+
+    parser.add_argument('--one_input_channel', action='store_true', default=False,
+                        help='Whether the model contains one or three input channels.')
+
     group_device = parser.add_mutually_exclusive_group()
     group_device.add_argument('--gpus', type=str, default='0',
                               help='ID of used GPU.')
@@ -94,7 +101,8 @@ def main():
     args, cfg = parse_args()
 
     checkpoints_list, logs_path, logs_prefix = get_checkpoints_list_and_logs_path(args, cfg)
-    cfg.one_input_channel = True
+    cfg.one_input_channel = args.one_input_channel
+    cfg.structure = args.structure
     logs_path.mkdir(parents=True, exist_ok=True)
 
     single_model_eval = len(checkpoints_list) == 1
@@ -273,8 +281,9 @@ def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_
     def callback(image, gt_mask, pred_probs, sample_id, click_indx, clicks_list):
         sample_path = save_path / f'{sample_id}_{click_indx}.jpg'
         prob_map = draw_probmap(pred_probs)
+        image_with_gt = draw_with_blend_and_clicks(image, gt_mask, one_input_channel=one_input_channel)
         image_with_mask = draw_with_blend_and_clicks(image, pred_probs > prob_thresh, clicks_list=clicks_list, one_input_channel=one_input_channel)
-        cv2.imwrite(str(sample_path), np.concatenate((image_with_mask, prob_map), axis=1)[:, :, ::-1])
+        cv2.imwrite(str(sample_path), np.concatenate((image_with_gt, image_with_mask, prob_map), axis=1)[:, :, ::-1])
 
     return callback
 

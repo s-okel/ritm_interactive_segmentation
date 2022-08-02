@@ -1,5 +1,6 @@
 from isegm.utils.exp_imports.default import *
-MODEL_NAME = 'panc_hrnet18_iter'
+label = "tumour"
+MODEL_NAME = f'{label}_hrnet64_iter'
 
 
 def main(cfg):
@@ -12,18 +13,19 @@ def init_model(cfg):
     model_cfg.crop_size = (96, 96)
     model_cfg.num_max_points = 24
 
-    model = HRNetModel(width=18, ocr_width=64, with_aux_output=True, use_leaky_relu=True,
-                       use_rgb_conv=False, use_disks=True, norm_radius=5, with_prev_mask=True, one_input_channel=False)
+    model = HRNetModel(width=64, ocr_width=64, with_aux_output=True, use_leaky_relu=True,
+                       use_rgb_conv=False, use_disks=True, norm_radius=5, with_prev_mask=True,
+                       one_input_channel=False)
 
     model.to(cfg.device)
     model.apply(initializer.XavierGluon(rnd_type='gaussian', magnitude=2.0))
-    model.feature_extractor.load_pretrained_weights(cfg.IMAGENET_PRETRAINED_MODELS.HRNETV2_W18)
+    model.feature_extractor.load_pretrained_weights(cfg.IMAGENET_PRETRAINED_MODELS.HRNETV2_W64)
 
     return model, model_cfg
 
 
 def train(model, cfg, model_cfg):
-    cfg.batch_size = 28 if cfg.batch_size < 1 else cfg.batch_size
+    cfg.batch_size = 32 if cfg.batch_size < 1 else cfg.batch_size
     cfg.val_batch_size = cfg.batch_size
     crop_size = model_cfg.crop_size
 
@@ -56,20 +58,22 @@ def train(model, cfg, model_cfg):
 
     trainset = PancDataset(
         split='train',
+        label=label,
+        one_input_channel=False,
         augmentator=train_augmentator,
-        min_object_area=80,
+        min_object_area=0,
         keep_background_prob=0.01,
         points_sampler=points_sampler,
-        one_input_channel=False
     )
 
     valset = PancDataset(
         split='val',
+        label=label,
+        one_input_channel=False,
         augmentator=val_augmentator,
-        min_object_area=80,
+        min_object_area=0,
         points_sampler=points_sampler,
-        epoch_len=500,
-        one_input_channel=False
+        epoch_len=500
     )
 
     optimizer_params = {
@@ -87,6 +91,5 @@ def train(model, cfg, model_cfg):
                         image_dump_interval=200,
                         metrics=[AdaptiveIoU()],
                         max_interactive_points=model_cfg.num_max_points,
-                        max_num_next_clicks=3,
-                        one_input_channel=False)
+                        max_num_next_clicks=3)
     trainer.run(num_epochs=220)

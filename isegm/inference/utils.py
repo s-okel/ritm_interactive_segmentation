@@ -19,7 +19,7 @@ def get_time_metrics(all_ious, elapsed_time):
     return mean_spc, mean_spi
 
 
-def load_is_model(checkpoint, device, one_input_channel=True, **kwargs):
+def load_is_model(checkpoint, device, one_input_channel=False, **kwargs):
     if isinstance(checkpoint, (str, Path)):
         state_dict = torch.load(checkpoint, map_location='cpu')
     else:
@@ -40,7 +40,7 @@ def load_is_model(checkpoint, device, one_input_channel=True, **kwargs):
         return load_single_is_model(state_dict, device, one_input_channel=one_input_channel, **kwargs)
 
 
-def load_single_is_model(state_dict, device, one_input_channel=True, **kwargs):
+def load_single_is_model(state_dict, device, one_input_channel=False, **kwargs):
     model = load_model(state_dict['config'], one_input_channel=one_input_channel, **kwargs)
     model.load_state_dict(state_dict['state_dict'], strict=False)
 
@@ -68,7 +68,7 @@ def get_dataset(dataset_name, cfg):
     elif dataset_name == 'COCO_MVal':
         dataset = DavisDataset(cfg.COCO_MVAL_PATH)
     elif dataset_name == 'Panc':
-        dataset = PancDataset('val', one_input_channel=cfg.one_input_channel)
+        dataset = PancDataset('val', one_input_channel=cfg.one_input_channel, label=cfg.structure)
     else:
         dataset = None
 

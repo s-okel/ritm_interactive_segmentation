@@ -41,7 +41,7 @@ def serialize(init):
     return new_init
 
 
-def load_model(config, one_input_channel=True, **kwargs):
+def load_model(config, one_input_channel=False, **kwargs):
     model_class = get_class_from_str(config['class'])
     model_default_params = get_default_params(model_class)
 

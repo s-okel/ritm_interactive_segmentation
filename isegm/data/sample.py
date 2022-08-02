@@ -54,7 +54,7 @@ class DSample:
             self._soft_mask_aug = ReplayCompose._restore_for_replay(mask_replay)
 
         self._compute_objects_areas()
-        self.remove_small_objects(min_area=1)
+        # self.remove_small_objects(min_area=1)
 
         self._augmented = True
 
@@ -74,7 +74,8 @@ class DSample:
 
         for obj_id, obj_info in list(self._objects.items()):
             if obj_info['area'] < min_area:
-                self._remove_object(obj_id)
+                pass
+                # self._remove_object(obj_id)
 
     def get_object_mask(self, obj_id):
         layer_indx, mask_id = self._objects[obj_id]['mapping']

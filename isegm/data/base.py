@@ -39,7 +39,7 @@ class ISDataset(torch.utils.data.dataset.Dataset):
 
         sample = self.get_sample(index)
         sample = self.augment_sample(sample)
-        sample.remove_small_objects(self.min_object_area)
+        # sample.remove_small_objects(self.min_object_area)
 
         self.points_sampler.sample_object(sample)
         points = np.array(self.points_sampler.sample_points())
