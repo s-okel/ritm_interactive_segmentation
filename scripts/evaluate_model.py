@@ -105,6 +105,9 @@ def main():
     cfg.structure = args.structure
     logs_path.mkdir(parents=True, exist_ok=True)
 
+    print(f"Structure: {args.structure}")
+    print(f"path: {args.checkpoint}")
+
     single_model_eval = len(checkpoints_list) == 1
     assert not args.iou_analysis if not single_model_eval else True, \
         "Can't perform IoU analysis for multiple checkpoints"
