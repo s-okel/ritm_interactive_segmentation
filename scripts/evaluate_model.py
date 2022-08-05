@@ -272,7 +272,7 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
         }, f)
 
     np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.npy', all_ious_np)
-    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.npy', all_dice_scores)
+    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}_dice.npy', all_dice_scores)
 
 
 def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_channel=False):
