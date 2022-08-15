@@ -13,3 +13,4 @@ datasets/Panc
 datasets/SBD
 assets/test_imgs/panc
 epoch_evaluations/
+slurm*

@@ -302,6 +302,7 @@ def combined_delta_absolute(data_dict, n_clicks, lw=0.5, save=False, font_size=1
 if __name__ == "__main__":
     experiments_path = "Z:/Pancreas/interactivity/repos/ritm_interactive_segmentation/experiments/iter_mask/"
     fs = 13
+    linew = 1
     # process_results_txt()
 
     # final: aorta, SMA, PD
@@ -316,9 +317,9 @@ if __name__ == "__main__":
 
     data = load_data_to_plot(structures)
     plot_avg_mask_influence(data, structures, noc_thr=0.8, save=True, font_size=fs)
-    single_noc_histogram(data, 'Pancreas', n_clicks=50, noc_thr=0.8, lw=0.5, save=False, font_size=fs)
-    combined_miou_plot(data, n_clicks=30, lw=0.5, font_size=fs)
+    single_noc_histogram(data, 'Pancreas', n_clicks=50, noc_thr=0.8, lw=0.5, save=True, font_size=fs)
+    combined_miou_plot(data, n_clicks=20, lw=linew, font_size=fs, save=True)
     combined_noc_histogram(data, n_clicks=50, noc_thr=0.8)
     combined_noc_histogram(data, n_clicks=30, noc_thr=0.8)
-    combined_delta_absolute(data, n_clicks=50)
-    combined_delta_absolute(data, n_clicks=30)
+    # combined_delta_absolute(data, n_clicks=50)
+    combined_delta_absolute(data, n_clicks=20, save=False)
