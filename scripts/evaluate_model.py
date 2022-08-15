@@ -106,7 +106,6 @@ def main():
     logs_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Structure: {args.structure}")
-    print(f"path: {args.checkpoint}")
 
     single_model_eval = len(checkpoints_list) == 1
     assert not args.iou_analysis if not single_model_eval else True, \
@@ -180,7 +179,7 @@ def get_checkpoints_list_and_logs_path(args, cfg):
         candidates = list(exp_path_prefix.parent.glob(exp_path_prefix.stem + '*'))
         assert len(candidates) == 1, "Invalid experiment path."
         exp_path = candidates[0]
-        checkpoints_list = sorted((exp_path / 'checkpoints').glob(checkpoint_prefix + '*.pth'), reverse=True)
+        checkpoints_list = sorted(candidates, reverse=True)
         assert len(checkpoints_list) > 0, "Couldn't find any checkpoints."
 
         if checkpoint_prefix:
