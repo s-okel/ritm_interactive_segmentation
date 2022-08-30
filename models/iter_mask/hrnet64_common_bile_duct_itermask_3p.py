@@ -14,7 +14,7 @@ def init_model(cfg):
     model_cfg.num_max_points = 24
 
     model = HRNetModel(width=64, ocr_width=64, with_aux_output=True, use_leaky_relu=True,
-                       use_rgb_conv=False, use_disks=True, norm_radius=2, with_prev_mask=True,
+                       use_rgb_conv=False, use_disks=True, norm_radius=5, with_prev_mask=True,
                        one_input_channel=False)
 
     model.to(cfg.device)
@@ -89,7 +89,7 @@ def train(model, cfg, model_cfg):
                         lr_scheduler=lr_scheduler,
                         checkpoint_interval=[(0, 5), (100, 1)],
                         image_dump_interval=200,
-                        metrics=[AdaptiveIoU()],
+                        metrics=[AdaptiveIoU(), DiceScore()],
                         max_interactive_points=model_cfg.num_max_points,
                         max_num_next_clicks=3)
     trainer.run(num_epochs=220)

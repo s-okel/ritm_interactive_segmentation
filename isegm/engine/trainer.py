@@ -62,6 +62,9 @@ class ISTrainer(object):
 
         self.epoch_train_loss = []
         self.epoch_val_loss = []
+        self.epoch_val_iou = []
+        self.epoch_val_dice = []
+        self.highest_iou = 0
 
         self.checkpoint_interval = checkpoint_interval
         self.image_dump_interval = image_dump_interval
@@ -228,22 +231,37 @@ class ISTrainer(object):
                     metric.log_states(self.sw, f'{log_prefix}Metrics/{metric.name}', global_step)
 
         if self.is_master:
-            for loss_name, loss_values in losses_logging.items():
+            for loss_name, loss_values in losses_logging.items():  # instance, aux, overall loss
                 self.sw.add_scalar(tag=f'{log_prefix}Losses/{loss_name}', value=np.array(loss_values).mean(),
                                    global_step=epoch, disable_avg=True)
 
-            for metric in self.val_metrics:
-                self.sw.add_scalar(tag=f'{log_prefix}Metrics/{metric.name}', value=metric.get_epoch_value(),
+            for metric in self.val_metrics:  # adaptive IoU
+                val_metric = metric.get_epoch_value()
+                self.sw.add_scalar(tag=f'{log_prefix}Metrics/{metric.name}', value=val_metric,
                                    global_step=epoch, disable_avg=True)
+                print(f"Metric name: {metric.name}")
+                print(f"Metric get epoch value: {val_metric}")
+
+                if metric.name == 'DiceScore':
+                    self.epoch_val_dice.append(val_metric)
+                elif metric.name == "AdaptiveIoU":
+                    self.epoch_val_iou.append(val_metric)
+                else:
+                    print("Metric not saved")
+
+        print(f"Validation loss: {val_loss / len(tbar)}\n")
 
         if (epoch + 1) % 10 == 0:
             save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix, epoch=None,
-                            multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}-val-loss-{val_loss / len(tbar):.2f}")
-
+                            multi_gpu=self.cfg.multi_gpu, name=f"epoch-{epoch}")
 
         self.epoch_val_loss.append(val_loss / len(tbar))
-        with open(str(self.cfg.CHECKPOINTS_PATH) + r"\val_losses.txt", "w") as f:
+        with open("./" + str(self.cfg.CHECKPOINTS_PATH) + r"/val_losses.txt", "w") as f:
             f.write(str(self.epoch_val_loss))
+        with open("./" + str(self.cfg.CHECKPOINTS_PATH) + r"/val_dice.txt", "w") as f:
+            f.write(str(self.epoch_val_dice))
+        with open("./" + str(self.cfg.CHECKPOINTS_PATH) + r"/val_iou.txt", "w") as f:
+            f.write(str(self.epoch_val_iou))
 
     def batch_forward(self, batch_data, validation=False):
         metrics = self.val_metrics if validation else self.train_metrics

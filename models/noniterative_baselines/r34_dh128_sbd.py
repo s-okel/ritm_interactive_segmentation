@@ -81,6 +81,6 @@ def train(model, cfg, model_cfg):
                         lr_scheduler=lr_scheduler,
                         checkpoint_interval=5,
                         image_dump_interval=2000,
-                        metrics=[AdaptiveIoU()],
+                        metrics=[AdaptiveIoU(), DiceScore()],
                         max_interactive_points=model_cfg.num_max_points)
     trainer.run(num_epochs=120)
