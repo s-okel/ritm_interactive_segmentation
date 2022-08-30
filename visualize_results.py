@@ -13,7 +13,23 @@ def get_noc(iou_arr, iou_thr, max_clicks):
     return np.argmax(vals) + 1 if np.any(vals) else max_clicks
 
 
+def improve_label(og_label, abbreviations):
+    new_label = og_label.replace('_', ' ')
+    new_label = new_label.capitalize()
+    if abbreviations:
+        new_label = new_label.replace('Arteria mesenterica superior', 'SMA')
+        new_label = new_label.replace('Common bile duct', 'CBD')
+        new_label = new_label.replace('Gastroduodenalis', 'GA')
+        new_label = new_label.replace('Pancreatic duct', 'PD')
+    else:
+        new_label = new_label.replace('Arteria mesenterica superior', 'Superior mesenteric artery')
+    new_label = new_label.replace('Tumour', 'Tumor')
+
+    return new_label
+
+
 def load_data_to_plot(data_dict):
+    # loads for each structure one file with IoUs
     iou_dict = {}
 
     for model in os.listdir(experiments_path):
@@ -52,9 +68,11 @@ def process_results_txt():
     if os.path.exists(txt_file):
         os.remove(txt_file)
     for model in os.listdir(experiments_path):
+        latex_table_string = ''
         model_path = experiments_path + model + "/"
         model_name = model.replace("_hrnet64_iter", "")
         print(colored(f"Model name: {model_name}", "green"))
+        latex_table_string = latex_table_string + model_name + " & "
         with open(txt_file, "a") as write_file:
             write_file.write(f"Model name: {model_name}\n")
         results[model_name] = {}
@@ -88,6 +106,14 @@ def process_results_txt():
                                 # save in comprehensive dict
                                 results[model_name][try_nr][epoch] = values
 
+                                # add to latex table
+                                n_values = len(values)
+                                for i, value in enumerate(values):
+                                    if i + 1 == n_values:
+                                        latex_table_string = latex_table_string + str(value) + r" \\"
+                                    else:
+                                        latex_table_string = latex_table_string + str(value) + " & "
+
                                 # write to file
                                 with open(txt_file, "a") as write_file:
                                     write_file.write(f"\t\t{values}\n")
@@ -95,6 +121,8 @@ def process_results_txt():
                                 # add to list/array
                                 results_per_try.append([float(item) for item in values])
                                 epochs_per_try.append(float(epoch))
+
+                                print(latex_table_string)
 
             results_per_try = np.array(results_per_try)
             epochs_per_try = np.array(epochs_per_try)[:, None]
@@ -299,27 +327,130 @@ def combined_delta_absolute(data_dict, n_clicks, lw=0.5, save=False, font_size=1
         plt.show()
 
 
+def val_loss_vs_metrics(structures_dict, label, n_clicks, noc_thr, lw=0.5, save=False, font_size=12):
+    try_nr = structures_dict[label]['try']
+
+    # load for one label+try all IoUs for each checkpoint
+    losses = []
+    nocs = []
+    epochs = []
+
+    for model in os.listdir(experiments_path):
+        if label not in model:
+            continue
+        model_path = experiments_path + model + "/"
+        for model_try in os.listdir(model_path):
+            if try_nr not in model_try:
+                continue
+            model_try_path = model_path + model_try + "/"
+            evaluation_path = model_try_path + "evaluation_logs/others/"
+            if os.path.exists(evaluation_path):
+                for epoch in os.listdir(evaluation_path):
+                    plots_path = evaluation_path + epoch + "/plots/"
+                    if os.path.exists(plots_path):
+                        for file in os.listdir(plots_path):
+                            if ".pickle" in file:
+                                epoch = re.findall(r'[0-9]{1,3}(?=-)', plots_path)[0]
+                                epochs.append(float(epoch))
+                                loss = re.findall(r'[0-9]{1,2}\.[0-9]{1,2}', plots_path)[0]
+                                losses.append(float(loss))
+                                with open(plots_path + file, "rb") as f:
+                                    ious_array = np.array(pickle.load(f)['all_ious'])[:, :n_clicks]
+                                noc_per_image = []
+                                for i in range(ious_array.shape[0]):
+                                    noc = get_noc(ious_array[i], iou_thr=noc_thr, max_clicks=n_clicks)
+                                    noc_per_image.append(noc)
+                                nocs.append(np.mean(noc_per_image))
+
+    print(losses)
+    print(nocs)
+    f, ax = plt.subplots()
+    losses, nocs = zip(*sorted(zip(losses, nocs)))
+    ax.plot(losses, nocs, '.', color="#e28743", lw=lw)
+    ax.spines.right.set_visible(False)
+    ax.spines.top.set_visible(False)
+    plt.grid(visible=True, which='both', axis='both')
+    plt.xlabel('Validation loss', fontsize=font_size)
+    plt.ylabel(f'NoC@{int(noc_thr * 100)}', fontsize=font_size)
+    plt.show()
+
+    epochs, losses, nocs = zip(*sorted(zip(epochs, losses, nocs)))
+    ax1 = plt.subplot()
+
+    ax1.plot(epochs, losses, color="#e28743", lw=lw)
+    ax1.spines.top.set_visible(False)
+    ax1.set_ylabel('Validation loss')
+    ax2 = ax1.twinx()
+    ax2.spines.top.set_visible(False)
+    ax2.set_ylabel(f"NoC@{int(noc_thr * 100)}")
+    ax2.plot(epochs, nocs, color='#332288', lw=lw)
+    plt.grid(visible=True, which='both', axis='both')
+    plt.show()
+
+
+def create_latex_table(structures_dict):
+    latex_table_string = ''
+
+    for key in structures_dict:
+        print(key)
+        label = improve_label(key, abbreviations=True)
+        latex_table_string = latex_table_string + label + " & "
+
+        for model in os.listdir(experiments_path):
+            if key not in model:
+                continue
+            model_path = experiments_path + model + "/"
+            for model_try in os.listdir(model_path):
+                if structures_dict[key]['try'] not in model_try:
+                    continue
+                model_try_path = model_path + model_try + "/"
+                evaluation_path = model_try_path + "evaluation_logs/test_set/others/"
+                if os.path.exists(evaluation_path):
+                    for epoch in os.listdir(evaluation_path):
+                        epoch_path = evaluation_path + epoch + "/"
+                        if os.path.exists(epoch_path):
+                            for file in os.listdir(epoch_path):
+                                if ".txt" in file:
+                                    with open(epoch_path + file, "r") as f:
+                                        text = f.read()
+                                    values = re.findall(r"([0-9]{0,2}\.[0-9]{2})(?!\|)(?![0-9])", text)
+
+                                    # add to latex table
+                                    n_values = len(values)
+                                    for i, value in enumerate(values):
+                                        if i + 1 == n_values:
+                                            latex_table_string = latex_table_string + str(value) + r" \\" + "\n"
+                                        else:
+                                            latex_table_string = latex_table_string + str(value) + " & "
+
+                                    print(latex_table_string)
+
+
 if __name__ == "__main__":
     experiments_path = "Z:/Pancreas/interactivity/repos/ritm_interactive_segmentation/experiments/iter_mask/"
     fs = 13
     linew = 1
     # process_results_txt()
 
-    # final: aorta, SMA, PD
-    # semi final: CBD, GA, pancreas, tumour
+    # final: aorta, SMA, PD, CBD, GA, pancreas, tumour
     structures = {'aorta': {'try': '001', 'epoch': 169, 'avg_mask': 3001},
                   'arteria_mesenterica_superior': {'try': '001', 'epoch': 119, 'avg_mask': 252},
                   'common_bile_duct': {'try': '001', 'epoch': 110, 'avg_mask': 501},
                   'gastroduodenalis': {'try': '001', 'epoch': 29, 'avg_mask': 61},
                   'pancreas': {'try': '002', 'epoch': 149, 'avg_mask': 979},
-                  'pancreatic_duct': {'try': '000', 'epoch': 79, 'avg_mask': 162},
-                  'tumour': {'try': '000', 'epoch': 39, 'avg_mask': 75}}
-
+                  'pancreatic_duct': {'try': '000', 'epoch': 179, 'avg_mask': 162},  # changed this one, so should update values! try model on test set first...
+                  'tumour': {'try': '000', 'epoch': 159, 'avg_mask': 75}}
+    create_latex_table(structures)
+    """
+    val_loss_vs_metrics(structures, 'tumour', n_clicks=20, noc_thr=0.8, lw=linew, save=False, font_size=fs)
+    
     data = load_data_to_plot(structures)
     plot_avg_mask_influence(data, structures, noc_thr=0.8, save=True, font_size=fs)
     single_noc_histogram(data, 'Pancreas', n_clicks=50, noc_thr=0.8, lw=0.5, save=True, font_size=fs)
+    
     combined_miou_plot(data, n_clicks=20, lw=linew, font_size=fs, save=True)
     combined_noc_histogram(data, n_clicks=50, noc_thr=0.8)
     combined_noc_histogram(data, n_clicks=30, noc_thr=0.8)
     # combined_delta_absolute(data, n_clicks=50)
     combined_delta_absolute(data, n_clicks=20, save=False)
+    """
