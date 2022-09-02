@@ -37,8 +37,8 @@ def parse_args():
                              'GrabCut, Berkeley, DAVIS, SBD, PascalVOC')
 
     parser.add_argument('--structure', type=str, default=None,
-                       help='In case of the pancreas dataset, which anatomical structure dataset should be chosen.'
-                            'E.g. aorta or common bile duct')
+                        help='In case of the pancreas dataset, which anatomical structure dataset should be chosen.'
+                             'E.g. aorta or common bile duct')
 
     parser.add_argument('--one_input_channel', action='store_true', default=False,
                         help='Whether the model contains one or three input channels.')
@@ -106,15 +106,16 @@ def main():
     logs_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Structure: {args.structure}")
+    print(f"Checkpoints: {checkpoints_list}")
 
     single_model_eval = len(checkpoints_list) == 1
-    assert not args.iou_analysis if not single_model_eval else True, \
-        "Can't perform IoU analysis for multiple checkpoints"
-    print_header = single_model_eval
+    print_header = True
     for dataset_name in args.datasets.split(','):
         dataset = utils.get_dataset(dataset_name, cfg)
 
         for checkpoint_path in checkpoints_list:
+            print(f"checkpoint path: {checkpoint_path}\n")
+            logs_path_ch = logs_path / checkpoint_path.stem
             model = utils.load_is_model(checkpoint_path, args.device, one_input_channel=cfg.one_input_channel)
 
             predictor_params, zoomin_params = get_predictor_and_zoomin_params(args, dataset_name)
@@ -123,24 +124,24 @@ def main():
                                       predictor_params=predictor_params,
                                       zoom_in_params=zoomin_params)
 
-            vis_callback = get_prediction_vis_callback(logs_path, dataset_name, args.thresh, cfg.one_input_channel) if args.vis_preds else None
+            vis_callback = get_prediction_vis_callback(logs_path, dataset_name, args.thresh,
+                                                       cfg.one_input_channel) if args.vis_preds else None
             dataset_results = evaluate_dataset(dataset, predictor, pred_thr=args.thresh,
-                                               max_iou_thr=args.target_iou,
+                                               max_metric_thr=args.target_iou,
                                                min_clicks=args.min_n_clicks,
                                                max_clicks=args.n_clicks,
                                                callback=vis_callback)
 
             row_name = args.mode if single_model_eval else checkpoint_path.stem
             if args.iou_analysis:
-                save_iou_analysis_data(args, dataset_name, logs_path,
+                save_iou_analysis_data(args, dataset_name, logs_path_ch,
                                        logs_prefix, dataset_results,
                                        model_name=args.model_name)
 
-            save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_results,
+            save_results(args, row_name, dataset_name, logs_path_ch, logs_prefix, dataset_results,
                          save_ious=single_model_eval and args.save_ious,
                          single_model_eval=single_model_eval,
                          print_header=print_header)
-            print_header = False
 
 
 def get_predictor_and_zoomin_params(args, dataset_name):
@@ -176,9 +177,7 @@ def get_checkpoints_list_and_logs_path(args, cfg):
             rel_exp_path, checkpoint_prefix = rel_exp_path.split(':')
 
         exp_path_prefix = cfg.EXPS_PATH / rel_exp_path
-        candidates = list(exp_path_prefix.parent.glob(exp_path_prefix.stem + '*'))
-        assert len(candidates) == 1, "Invalid experiment path."
-        exp_path = candidates[0]
+        candidates = list(exp_path_prefix.glob('*.pth'))
         checkpoints_list = sorted(candidates, reverse=True)
         assert len(checkpoints_list) > 0, "Couldn't find any checkpoints."
 
@@ -186,11 +185,11 @@ def get_checkpoints_list_and_logs_path(args, cfg):
             if len(checkpoints_list) == 1:
                 logs_prefix = checkpoints_list[0].stem
             else:
-                logs_prefix = f'all_{checkpoint_prefix}'
+                logs_prefix = f''
         else:
-            logs_prefix = 'all_checkpoints'
+            logs_prefix = ''
 
-        logs_path = args.logs_path / exp_path.relative_to(cfg.EXPS_PATH)
+        logs_path = args.logs_path
     else:
         checkpoints_list = [Path(utils.find_checkpoint(cfg.INTERACTIVE_MODELS_PATH, args.checkpoint))]
         logs_path = args.logs_path / 'others' / checkpoints_list[0].stem
@@ -200,24 +199,33 @@ def get_checkpoints_list_and_logs_path(args, cfg):
 
 def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_results,
                  save_ious=False, print_header=True, single_model_eval=False):
-    all_ious, elapsed_time, _, _ = dataset_results
+    all_ious, all_dices, elapsed_time = dataset_results
     mean_spc, mean_spi = utils.get_time_metrics(all_ious, elapsed_time)
 
     iou_thrs = np.arange(0.8, min(0.95, args.target_iou) + 0.001, 0.05).tolist()
     noc_list, over_max_list = utils.compute_noc_metric(all_ious, iou_thrs=iou_thrs, max_clicks=args.n_clicks)
+    noc_dice_list, over_max_dice_list = utils.compute_noc_metric(all_dices, iou_thrs=iou_thrs, max_clicks=args.n_clicks)
 
     row_name = 'last' if row_name == 'last_checkpoint' else row_name
     model_name = str(logs_path.relative_to(args.logs_path)) + ':' + logs_prefix if logs_prefix else logs_path.stem
     header, table_row = utils.get_results_table(noc_list, over_max_list, row_name, dataset_name,
-                                                mean_spc, elapsed_time, args.n_clicks,
+                                                mean_spc, elapsed_time, 'iou', args.n_clicks,
+                                                model_name=model_name)
+    _, table_row_dice = utils.get_results_table(noc_dice_list, over_max_dice_list, row_name, dataset_name,
+                                                mean_spc, elapsed_time, 'dice', args.n_clicks,
                                                 model_name=model_name)
 
     if args.print_ious:
         min_num_clicks = min(len(x) for x in all_ious)
+        min_num_dice_clicks = min(len(x) for x in all_dices)
         mean_ious = np.array([x[:min_num_clicks] for x in all_ious]).mean(axis=0)
+        mean_dices = np.array([x[:min_num_clicks] for x in all_dices]).mean(axis=0)
         miou_str = ' '.join([f'mIoU@{click_id}={mean_ious[click_id - 1]:.2%};'
                              for click_id in [1, 2, 3, 5, 10, 20] if click_id <= min_num_clicks])
-        table_row += '; ' + miou_str
+        mdice_str = ' '.join([f'mIoU@{click_id}={mean_dices[click_id - 1]:.2%};'
+                              for click_id in [1, 2, 3, 5, 10, 20] if click_id <= min_num_dice_clicks])
+
+        table_row += '\n' + table_row_dice + '\n' + miou_str + '\n' + mdice_str
     else:
         target_iou_int = int(args.target_iou * 100)
         if target_iou_int not in [80, 85, 90]:
@@ -233,8 +241,12 @@ def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_r
     if save_ious:
         ious_path = logs_path / 'ious' / (logs_prefix if logs_prefix else '')
         ious_path.mkdir(parents=True, exist_ok=True)
-        with open(ious_path / f'{dataset_name}_{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.pkl', 'wb') as fp:
+        with open(ious_path / f'{dataset_name}_{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}_iou.pkl',
+                  'wb') as fp:
             pickle.dump(all_ious, fp)
+        with open(ious_path / f'{dataset_name}_{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}_dice.pkl',
+                  'wb') as fp:
+            pickle.dump(all_dices, fp)
 
     name_prefix = ''
     if logs_prefix:
@@ -254,7 +266,7 @@ def save_results(args, row_name, dataset_name, logs_path, logs_prefix, dataset_r
 
 
 def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_results, model_name=None):
-    all_ious, _, all_ious_np, all_dice_scores = dataset_results
+    all_ious, all_dices, _ = dataset_results
 
     name_prefix = ''
     if logs_prefix:
@@ -270,11 +282,9 @@ def save_iou_analysis_data(args, dataset_name, logs_path, logs_prefix, dataset_r
         pickle.dump({
             'dataset_name': dataset_name,
             'model_name': f'{model_name}_{args.mode}',
-            'all_ious': all_ious
+            'all_ious': all_ious,
+            'all_dices': all_dices
         }, f)
-
-    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}.npy', all_ious_np)
-    np.save(logs_path / f'plots/{name_prefix}{args.eval_mode}_{args.mode}_{args.n_clicks}_{args.structure}_dice.npy', all_dice_scores)
 
 
 def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_channel=False):
@@ -285,7 +295,8 @@ def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_
         sample_path = save_path / f'{sample_id}_{click_indx}.jpg'
         prob_map = draw_probmap(pred_probs)
         image_with_gt = draw_with_blend_and_clicks(image, gt_mask, one_input_channel=one_input_channel)
-        image_with_mask = draw_with_blend_and_clicks(image, pred_probs > prob_thresh, clicks_list=clicks_list, one_input_channel=one_input_channel)
+        image_with_mask = draw_with_blend_and_clicks(image, pred_probs > prob_thresh, clicks_list=clicks_list,
+                                                     one_input_channel=one_input_channel)
         cv2.imwrite(str(sample_path), np.concatenate((image_with_gt, image_with_mask, prob_map), axis=1)[:, :, ::-1])
 
     return callback

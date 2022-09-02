@@ -84,9 +84,17 @@ def get_iou(gt_mask, pred_mask, ignore_label=-1):
     intersection = np.logical_and(np.logical_and(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
     union = np.logical_and(np.logical_or(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
 
-    dice_score = 2 * intersection / (gt_mask.sum() + pred_mask.sum())
+    return intersection / union
 
-    return intersection / union, dice_score
+
+def get_dice(gt_mask, pred_mask, ignore_label=-1):
+    ignore_gt_mask_inv = gt_mask != ignore_label
+    obj_gt_mask = gt_mask == 1
+
+    intersection = np.logical_and(np.logical_and(pred_mask, obj_gt_mask), ignore_gt_mask_inv).sum()
+    sum_area = np.sum(pred_mask) + np.sum(obj_gt_mask)
+
+    return 2 * intersection / sum_area
 
 
 def compute_noc_metric(all_ious, iou_thrs, max_clicks=20):
@@ -132,9 +140,9 @@ def find_checkpoint(weights_folder, checkpoint_name):
     return str(checkpoint_path)
 
 
-def get_results_table(noc_list, over_max_list, brs_type, dataset_name, mean_spc, elapsed_time,
+def get_results_table(noc_list, over_max_list, brs_type, dataset_name, mean_spc, elapsed_time, metric,
                       n_clicks=20, model_name=None):
-    table_header = (f'|{"BRS Type":^13}|{"Dataset":^11}|'
+    table_header = (f'|{"BRS Type":^13}|{"Dataset":^11}|{"Metric":^8}|'
                     f'{"NoC@80%":^9}|{"NoC@85%":^9}|{"NoC@90%":^9}|'
                     f'{">="+str(n_clicks)+"@85%":^9}|{">="+str(n_clicks)+"@90%":^9}|'
                     f'{"SPC,s":^7}|{"Time":^9}|')
@@ -145,7 +153,7 @@ def get_results_table(noc_list, over_max_list, brs_type, dataset_name, mean_spc,
     header += table_header + '\n' + '-' * row_width
 
     eval_time = str(timedelta(seconds=int(elapsed_time)))
-    table_row = f'|{brs_type:^13}|{dataset_name:^11}|'
+    table_row = f'|{brs_type:^13}|{dataset_name:^11}|{metric:^8}|'
     table_row += f'{noc_list[0]:^9.2f}|'
     table_row += f'{noc_list[1]:^9.2f}|' if len(noc_list) > 1 else f'{"?":^9}|'
     table_row += f'{noc_list[2]:^9.2f}|' if len(noc_list) > 2 else f'{"?":^9}|'
