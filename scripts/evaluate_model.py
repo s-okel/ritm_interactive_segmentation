@@ -6,6 +6,7 @@ from pathlib import Path
 import cv2
 import torch
 import numpy as np
+import os
 
 sys.path.insert(0, '.')
 from isegm.inference import utils
@@ -106,7 +107,7 @@ def main():
     logs_path.mkdir(parents=True, exist_ok=True)
 
     print(f"Structure: {args.structure}")
-    print(f"Checkpoints: {checkpoints_list}")
+    print(f"Checkpoints: {checkpoints_list}\n\n")
 
     single_model_eval = len(checkpoints_list) == 1
     print_header = True
@@ -114,8 +115,14 @@ def main():
         dataset = utils.get_dataset(dataset_name, cfg)
 
         for checkpoint_path in checkpoints_list:
-            print(f"checkpoint path: {checkpoint_path}\n")
+            print(f"Evaluating checkpoint {checkpoint_path}")
             logs_path_ch = logs_path / checkpoint_path.stem
+
+            if os.path.exists(logs_path_ch):  # skips evaluation if log path exists and holds all data already
+                if check_txt_pickle(logs_path_ch):
+                    print("Data already present")
+                    continue
+
             model = utils.load_is_model(checkpoint_path, args.device, one_input_channel=cfg.one_input_channel)
 
             predictor_params, zoomin_params = get_predictor_and_zoomin_params(args, dataset_name)
@@ -300,6 +307,19 @@ def get_prediction_vis_callback(logs_path, dataset_name, prob_thresh, one_input_
         cv2.imwrite(str(sample_path), np.concatenate((image_with_gt, image_with_mask, prob_map), axis=1)[:, :, ::-1])
 
     return callback
+
+
+def check_txt_pickle(path):
+    i = 0
+    for file in os.listdir(path):
+        if file == 'plots':
+            for fl in os.listdir(os.path.join(path, file)):
+                if fl.endswith('.pickle'):
+                    i += 1
+        if file.endswith('.txt'):
+            i += 1
+
+    return i == 2
 
 
 if __name__ == '__main__':
