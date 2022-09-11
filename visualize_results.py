@@ -430,7 +430,9 @@ if __name__ == "__main__":
     experiments_path = "Z:/Pancreas/interactivity/repos/ritm_interactive_segmentation/experiments/iter_mask/"
     fs = 13
     linew = 1
-    # process_results_txt()
+    process_results_txt()
+
+    """
 
     # final: aorta, SMA, PD, CBD, GA, pancreas, tumour
     structures = {'aorta': {'try': '001', 'epoch': 169, 'avg_mask': 3001},
@@ -441,7 +443,7 @@ if __name__ == "__main__":
                   'pancreatic_duct': {'try': '000', 'epoch': 179, 'avg_mask': 162},  # changed this one, so should update values! try model on test set first...
                   'tumour': {'try': '000', 'epoch': 159, 'avg_mask': 75}}
     create_latex_table(structures)
-    """
+    
     val_loss_vs_metrics(structures, 'tumour', n_clicks=20, noc_thr=0.8, lw=linew, save=False, font_size=fs)
     
     data = load_data_to_plot(structures)

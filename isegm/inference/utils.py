@@ -122,7 +122,7 @@ def find_checkpoint(weights_folder, checkpoint_name):
     if ':' in checkpoint_name:
         model_name, checkpoint_name = checkpoint_name.split(':')
         models_candidates = [x for x in weights_folder.glob(f'{model_name}*') if x.is_dir()]
-        assert len(models_candidates) == 1
+        assert len(models_candidates) == 1, f"Expected one model, but received {len(models_candidates)}"
         model_folder = models_candidates[0]
     else:
         model_folder = weights_folder

@@ -15,3 +15,4 @@ assets/test_imgs/panc
 epoch_evaluations/
 slurm*
 scripts/images_with_masks/
+scripts/Thumbs.db
