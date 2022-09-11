@@ -1,10 +1,12 @@
 import torch
 import numpy as np
 from tkinter import messagebox
+import matplotlib.pyplot as plt
 
 from isegm.inference import clicker
 from isegm.inference.predictors import get_predictor
 from isegm.utils.vis import draw_with_blend_and_clicks
+from isegm.inference.utils import get_iou, get_dice
 
 
 class InteractiveController:
@@ -17,6 +19,7 @@ class InteractiveController:
         self.object_count = 0
         self._result_mask = None
         self._init_mask = None
+        self._ground_truth_mask = None
 
         self.image = None
         self.predictor = None
@@ -25,6 +28,8 @@ class InteractiveController:
         self.predictor_params = predictor_params
         self.reset_predictor()
         self.one_input_channel = one_input_channel
+        self.dice = [0]
+        self.iou = [0]
 
     def set_image(self, image):
         if self.one_input_channel:
@@ -37,6 +42,9 @@ class InteractiveController:
         self.object_count = 0
         self.reset_last_object(update_image=False)
         self.update_image_callback(reset_canvas=True)
+
+        self.dice = [0]
+        self.iou = [0]
 
     def set_mask(self, mask):
         if self.image.shape[:2] != mask.shape[:2]:
@@ -51,7 +59,15 @@ class InteractiveController:
         self._init_mask = torch.tensor(self._init_mask, device=self.device).unsqueeze(0).unsqueeze(0)
         self.clicker.click_indx_offset = 1
 
+    def set_ground_truth_mask(self, mask):
+        if self.image.shape[:2] != mask.shape[:2]:
+            messagebox.showwarning("Warning", "A segmentation mask must have the same sizes as the current image!")
+            return
+
+        self._ground_truth_mask = mask / 255
+
     def add_click(self, x, y, is_positive):
+        print("Add click")
         self.states.append({
             'clicker': self.clicker.get_state(),
             'predictor': self.predictor.get_states()
@@ -72,6 +88,14 @@ class InteractiveController:
 
         self.update_image_callback()
 
+        if self._ground_truth_mask is not None:
+            mask = pred > self.prob_thresh
+            dice = get_dice(self._ground_truth_mask, mask)
+            iou = get_iou(self._ground_truth_mask, mask)
+            self.dice.append(dice)
+            self.iou.append(iou)
+            print(f"Dice: {self.dice}, IoU: {self.iou}")
+
     def undo_click(self):
         if not self.states:
             return
@@ -83,6 +107,9 @@ class InteractiveController:
         if not self.probs_history:
             self.reset_init_mask()
         self.update_image_callback()
+
+        self.dice = self.dice[:-1]
+        self.iou = self.iou[:-1]
 
     def partially_finish_object(self):
         object_prob = self.current_object_prob
@@ -141,6 +168,7 @@ class InteractiveController:
     @property
     def result_mask(self):
         result_mask = self._result_mask.copy()
+
         if self.probs_history:
             result_mask[self.current_object_prob > self.prob_thresh] = self.object_count + 1
         return result_mask
@@ -149,7 +177,13 @@ class InteractiveController:
         if self.image is None:
             return None
 
+        # print(f"gt min max: {np.min(self._ground_truth_mask)}, {np.max(self._ground_truth_mask)}")
+
         results_mask_for_vis = self.result_mask
+        mask_region = (results_mask_for_vis > 0).astype(np.uint8)
+
+        # print(f"mask region min max: {np.min(mask_region)}, {np.max(mask_region)}")
+
         vis = draw_with_blend_and_clicks(self.image, mask=results_mask_for_vis, alpha=alpha_blend,
                                          clicks_list=self.clicker.clicks_list, radius=click_radius)
         if self.probs_history:

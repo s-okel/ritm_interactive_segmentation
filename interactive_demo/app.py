@@ -65,7 +65,7 @@ class InteractiveDemoApp(ttk.Frame):
             'lbfgs_max_iters': tk.IntVar(value=20),
 
             'alpha_blend': tk.DoubleVar(value=0.5),
-            'click_radius': tk.IntVar(value=3),
+            'click_radius': tk.IntVar(value=0),
         }
 
     def _add_menu(self):
@@ -74,6 +74,8 @@ class InteractiveDemoApp(ttk.Frame):
 
         button = FocusButton(self.menubar, text='Load image', command=self._load_image_callback)
         button.pack(side=tk.LEFT)
+        gt_button = FocusButton(self.menubar, text='Load ground truth', command=self._load_ground_truth_callback)
+        gt_button.pack(side=tk.LEFT)
         self.save_mask_btn = FocusButton(self.menubar, text='Save mask', command=self._save_mask_callback)
         self.save_mask_btn.pack(side=tk.LEFT)
         self.save_mask_btn.configure(state=tk.DISABLED)
@@ -187,6 +189,20 @@ class InteractiveDemoApp(ttk.Frame):
                 self.controller.set_image(image)
                 self.save_mask_btn.configure(state=tk.NORMAL)
                 self.load_mask_btn.configure(state=tk.NORMAL)
+
+    def _load_ground_truth_callback(self):
+        self.menubar.focus_set()
+        if self._check_entry(self):
+            filename = filedialog.askopenfilename(parent=self.master, filetypes=[
+                ("Images", "*.jpg *.jpeg *.png *.bmp *.tiff"),
+                ("All files", "*.*"),
+            ], title="Chose an image")
+
+            if len(filename) > 0:
+                mask = cv2.cvtColor(cv2.imread(filename), cv2.COLOR_BGR2GRAY)
+                print(f"mask shape: {mask.shape}")
+                self.controller.set_ground_truth_mask(mask)
+
 
     def _save_mask_callback(self):
         self.menubar.focus_set()
