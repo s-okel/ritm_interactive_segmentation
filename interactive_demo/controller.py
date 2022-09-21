@@ -29,8 +29,10 @@ class InteractiveController:
         self.predictor_params = predictor_params
         self.reset_predictor()
         self.one_input_channel = one_input_channel
-        self.dice = [0]
-        self.iou = [0]
+        self.dice = [0.0]
+        self.iou = [0.0]
+        self.clicks = [0]
+        self.thresholds = [0.0]
         self.n_clicks = 0
         self.checkpoint = checkpoint
 
@@ -46,8 +48,8 @@ class InteractiveController:
         self.reset_last_object(update_image=False)
         self.update_image_callback(reset_canvas=True)
 
-        self.dice = [0]
-        self.iou = [0]
+        self.dice = [0.0]
+        self.iou = [0.0]
 
     def set_mask(self, mask):
         if self.image.shape[:2] != mask.shape[:2]:
@@ -62,7 +64,8 @@ class InteractiveController:
         self._init_mask = torch.tensor(self._init_mask, device=self.device).unsqueeze(0).unsqueeze(0)
         self.clicker.click_indx_offset = 1
 
-        self.calculate_score(mask)
+        if self._ground_truth_mask is not None:
+            self.calculate_score(mask)
 
     def set_ground_truth_mask(self, mask):
         if self.image.shape[:2] != mask.shape[:2]:
@@ -79,6 +82,7 @@ class InteractiveController:
 
         click = clicker.Click(is_positive=is_positive, coords=(y, x))
         self.clicker.add_click(click)
+        self.n_clicks += 1
         pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
         if self._init_mask is not None and len(self.clicker) == 1:
             pred = self.predictor.get_prediction(self.clicker, prev_mask=self._init_mask)
@@ -90,11 +94,7 @@ class InteractiveController:
         else:
             self.probs_history.append((np.zeros_like(pred), pred))
 
-        self.update_image_callback()
-
-        if self._ground_truth_mask is not None:
-            self.n_clicks += 1
-            self.calculate_score(pred)
+        self.update_image_callback(save_values=True)
 
     def undo_click(self):
         if not self.states:
@@ -110,9 +110,10 @@ class InteractiveController:
 
         self.dice = self.dice[:-1]
         self.iou = self.iou[:-1]
+        self.clicks = self.clicks[:-1]
+        self.thresholds = self.thresholds[:-1]
         self.n_clicks -= 1
-        print(f"Number of clicks: {self.n_clicks}")
-        print(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
+        self.calculate_score(mask1=None, print_only=True)
 
     def partially_finish_object(self):
         print(f"Partially finish object")
@@ -132,8 +133,9 @@ class InteractiveController:
         print(f"Finish object")
         with open('experiment_results.txt', 'a') as f:
             f.write(self.checkpoint)
-            f.write(f"\nNumber of clicks: {self.n_clicks}\n")
-            f.write(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
+            f.write(f"\nClicks: {self.clicks}\n")
+            f.write(f"Prediction thresholds: {self.thresholds}\n")
+            f.write(f"Dice: {self.dice}\nIoU: {self.iou}\n\n")
         if self.current_object_prob is None:
             return
 
@@ -149,9 +151,12 @@ class InteractiveController:
         self.reset_init_mask()
         if update_image:
             self.update_image_callback()
-        self.dice = [0]
-        self.iou = [0]
+        self.dice = [0.0]
+        self.iou = [0.0]
+        self.thresholds = [0.0]
+        self.clicks = [0]
         self.n_clicks = 0
+        self.calculate_score(mask1=None, print_only=True)
 
     def reset_predictor(self, predictor_params=None):
         if predictor_params is not None:
@@ -165,13 +170,17 @@ class InteractiveController:
         self._init_mask = None
         self.clicker.click_indx_offset = 0
 
-    def calculate_score(self, mask1):
-        mask = mask1 > self.prob_thresh
-        dice = get_dice(self._ground_truth_mask, mask)
-        iou = get_iou(self._ground_truth_mask, mask)
-        self.dice.append(dice)
-        self.iou.append(iou)
-        print(f"Number of clicks: {self.n_clicks}")
+    def calculate_score(self, mask1, print_only=False):
+        if not print_only:
+            mask = mask1 > self.prob_thresh
+            dice = get_dice(self._ground_truth_mask, mask)
+            iou = get_iou(self._ground_truth_mask, mask)
+            self.dice.append(dice)
+            self.iou.append(iou)
+            self.clicks.append(self.n_clicks)
+            self.thresholds.append(self.prob_thresh)
+        print(f"Click history: {self.clicks}")
+        print(f"Prob thresh history: {self.thresholds}")
         print(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
 
     @property
@@ -194,7 +203,7 @@ class InteractiveController:
             result_mask[self.current_object_prob > self.prob_thresh] = self.object_count + 1
         return result_mask
 
-    def get_visualization(self, alpha_blend, click_radius):
+    def get_visualization(self, alpha_blend, click_radius, save_values):
         if self.image is None:
             return None
 
@@ -204,6 +213,8 @@ class InteractiveController:
         mask_region = (results_mask_for_vis > 0).astype(np.uint8)
 
         # print(f"mask region min max: {np.min(mask_region)}, {np.max(mask_region)}")
+        if self._ground_truth_mask is not None and save_values:
+            self.calculate_score(mask_region)
 
         vis = draw_with_blend_and_clicks(self.image, mask=results_mask_for_vis, alpha=alpha_blend,
                                          clicks_list=self.clicker.clicks_list, radius=click_radius)

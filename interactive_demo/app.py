@@ -204,7 +204,6 @@ class InteractiveDemoApp(ttk.Frame):
                 mask = cv2.cvtColor(cv2.imread(filename), cv2.COLOR_BGR2GRAY)
                 self.controller.set_ground_truth_mask(mask)
 
-
     def _save_mask_callback(self):
         self.menubar.focus_set()
         if self._check_entry(self):
@@ -261,7 +260,7 @@ class InteractiveDemoApp(ttk.Frame):
     def _update_prob_thresh(self, value):
         if self.controller.is_incomplete_mask:
             self.controller.prob_thresh = self.state['prob_thresh'].get()
-            self._update_image()
+            self._update_image(save_values=True)
 
     def _update_blend_alpha(self, value):
         self._update_image()
@@ -328,9 +327,9 @@ class InteractiveDemoApp(ttk.Frame):
         if self._check_entry(self):
             self.controller.add_click(x, y, is_positive)
 
-    def _update_image(self, reset_canvas=False):
+    def _update_image(self, reset_canvas=False, save_values=False):
         image = self.controller.get_visualization(alpha_blend=self.state['alpha_blend'].get(),
-                                                  click_radius=self.state['click_radius'].get())
+                                                  click_radius=self.state['click_radius'].get(), save_values=save_values)
         if self.image_on_canvas is None:
             self.image_on_canvas = CanvasImage(self.canvas_frame, self.canvas)
             self.image_on_canvas.register_click_callback(self._click_callback)
