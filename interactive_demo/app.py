@@ -29,8 +29,10 @@ class InteractiveDemoApp(ttk.Frame):
         self.controller = InteractiveController(model, args.device,
                                                 predictor_params={'brs_mode': 'NoBRS'},
                                                 update_image_callback=self._update_image,
-                                                one_input_channel=one_input_channel)
+                                                one_input_channel=one_input_channel,
+                                                checkpoint=args.checkpoint)
 
+        self.label = args.checkpoint.split('/')[2][:-13]
         self._init_state()
         self._add_menu()
         self._add_canvas()
@@ -90,7 +92,7 @@ class InteractiveDemoApp(ttk.Frame):
         button.pack(side=tk.LEFT)
 
     def _add_canvas(self):
-        self.canvas_frame = FocusLabelFrame(self, text="Image")
+        self.canvas_frame = FocusLabelFrame(self, text=f"Image - {self.label}")
         self.canvas_frame.rowconfigure(0, weight=1)
         self.canvas_frame.columnconfigure(0, weight=1)
 
@@ -200,7 +202,6 @@ class InteractiveDemoApp(ttk.Frame):
 
             if len(filename) > 0:
                 mask = cv2.cvtColor(cv2.imread(filename), cv2.COLOR_BGR2GRAY)
-                print(f"mask shape: {mask.shape}")
                 self.controller.set_ground_truth_mask(mask)
 
 

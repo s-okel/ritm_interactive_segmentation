@@ -10,7 +10,8 @@ from isegm.inference.utils import get_iou, get_dice
 
 
 class InteractiveController:
-    def __init__(self, net, device, predictor_params, update_image_callback, prob_thresh=0.5, one_input_channel=False):
+    def __init__(self, net, device, predictor_params, update_image_callback, prob_thresh=0.5, one_input_channel=False,
+                 checkpoint=''):
         self.net = net
         self.prob_thresh = prob_thresh
         self.clicker = clicker.Clicker()
@@ -30,6 +31,8 @@ class InteractiveController:
         self.one_input_channel = one_input_channel
         self.dice = [0]
         self.iou = [0]
+        self.n_clicks = 0
+        self.checkpoint = checkpoint
 
     def set_image(self, image):
         if self.one_input_channel:
@@ -59,6 +62,8 @@ class InteractiveController:
         self._init_mask = torch.tensor(self._init_mask, device=self.device).unsqueeze(0).unsqueeze(0)
         self.clicker.click_indx_offset = 1
 
+        self.calculate_score(mask)
+
     def set_ground_truth_mask(self, mask):
         if self.image.shape[:2] != mask.shape[:2]:
             messagebox.showwarning("Warning", "A segmentation mask must have the same sizes as the current image!")
@@ -67,7 +72,6 @@ class InteractiveController:
         self._ground_truth_mask = mask / 255
 
     def add_click(self, x, y, is_positive):
-        print("Add click")
         self.states.append({
             'clicker': self.clicker.get_state(),
             'predictor': self.predictor.get_states()
@@ -89,12 +93,8 @@ class InteractiveController:
         self.update_image_callback()
 
         if self._ground_truth_mask is not None:
-            mask = pred > self.prob_thresh
-            dice = get_dice(self._ground_truth_mask, mask)
-            iou = get_iou(self._ground_truth_mask, mask)
-            self.dice.append(dice)
-            self.iou.append(iou)
-            print(f"Dice: {self.dice}, IoU: {self.iou}")
+            self.n_clicks += 1
+            self.calculate_score(pred)
 
     def undo_click(self):
         if not self.states:
@@ -110,8 +110,12 @@ class InteractiveController:
 
         self.dice = self.dice[:-1]
         self.iou = self.iou[:-1]
+        self.n_clicks -= 1
+        print(f"Number of clicks: {self.n_clicks}")
+        print(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
 
     def partially_finish_object(self):
+        print(f"Partially finish object")
         object_prob = self.current_object_prob
         if object_prob is None:
             return
@@ -125,6 +129,11 @@ class InteractiveController:
         self.update_image_callback()
 
     def finish_object(self):
+        print(f"Finish object")
+        with open('experiment_results.txt', 'a') as f:
+            f.write(self.checkpoint)
+            f.write(f"\nNumber of clicks: {self.n_clicks}\n")
+            f.write(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
         if self.current_object_prob is None:
             return
 
@@ -140,6 +149,9 @@ class InteractiveController:
         self.reset_init_mask()
         if update_image:
             self.update_image_callback()
+        self.dice = [0]
+        self.iou = [0]
+        self.n_clicks = 0
 
     def reset_predictor(self, predictor_params=None):
         if predictor_params is not None:
@@ -152,6 +164,15 @@ class InteractiveController:
     def reset_init_mask(self):
         self._init_mask = None
         self.clicker.click_indx_offset = 0
+
+    def calculate_score(self, mask1):
+        mask = mask1 > self.prob_thresh
+        dice = get_dice(self._ground_truth_mask, mask)
+        iou = get_iou(self._ground_truth_mask, mask)
+        self.dice.append(dice)
+        self.iou.append(iou)
+        print(f"Number of clicks: {self.n_clicks}")
+        print(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
 
     @property
     def current_object_prob(self):
