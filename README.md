@@ -45,6 +45,25 @@ This repository provides the source code for training and testing state-of-the-a
 > interactive segmentation. We find that the models trained on a combination of COCO and LVIS with diverse and 
 > high-quality annotations show performance superior to all existing models.*
 
+## What can be found where
+- `experiments/iter_mask/[structure]_hrnet64_iter/[try]\_hrnet64\_[structure]/checkpoints`
+  - The model weights as .pth files
+- `experiments/iter_mask/[structure]_hrnet64_iter/[try]\_hrnet64\_[structure]/evaluation_logs/test_set/others/[epoch]/[epoch]` or
+- `experiments/iter_mask/[structure]_hrnet64_iter/[try]\_hrnet64\_[structure]/evaluation_logs/others/[epoch]/[epoch]`
+  - Summary of performance for the epoch (.txt file): 
+  - In `Plots` subfolder: Pickle with both IoU and DSC after each click for all images (.pickle file)
+- `scripts/images_with_masks`
+  - Images with masks used for demo experiment, created by `scripts/generate_images.py`
+
+## Pancreas demo
+In folder, run either of these commands:
+- `python demo.py --checkpoint=experiments/iter_mask/aorta_hrnet64_iter/001_hrnet64_aorta/checkpoints/epoch-169-val-loss-0.33.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/tumour_hrnet64_iter/000_hrnet64_tumour/checkpoints/epoch-159-val-loss-0.43.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/arteria_mesenterica_superior_hrnet64_iter/001_hrnet64_arteria_mesenterica_superior/checkpoints/epoch-119-val-loss-0.32.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/common_bile_duct_hrnet64_iter/001_hrnet64_common_bile_duct/checkpoints/epoch-110-val-loss-0.52.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/gastroduodenalis_hrnet64_iter/001_hrnet64_gastroduodenalis/checkpoints/epoch-29-val-loss-0.33.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/pancreas_hrnet64_iter/002_hrnet64_pancreas/checkpoints/epoch-149-val-loss-0.72.pth`
+- `python demo.py --checkpoint=experiments/iter_mask/pancreatic_duct_hrnet64_iter/000_hrnet64_pancreatic_duct/checkpoints/epoch-179-val-loss-0.71.pth`
 
 ## Setting up an environment
 
@@ -86,13 +105,13 @@ python3 demo.py --checkpoint=hrnet18_cocolvis_itermask_3p --cpu
 
 <details>
 <summary><b>Running demo in docker</b></summary>
-<pre><code># activate xhost
+<pre>`# activate xhost
 xhost +
 docker run -v "$PWD":/tmp/ \
            -v /tmp/.X11-unix:/tmp/.X11-unix \
            -e DISPLAY=$DISPLAY &lt;id-or-tag-docker-built-image&gt; \
            python3 demo.py --checkpoint resnet34_dh128_sbd --cpu
-</code></pre>
+`</pre>
 </details>
 
 **Controls**:
