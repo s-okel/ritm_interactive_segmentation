@@ -116,7 +116,6 @@ class InteractiveController:
         self.calculate_score(mask1=None, print_only=True)
 
     def partially_finish_object(self):
-        print(f"Partially finish object")
         object_prob = self.current_object_prob
         if object_prob is None:
             return
@@ -179,9 +178,9 @@ class InteractiveController:
             self.iou.append(iou)
             self.clicks.append(self.n_clicks)
             self.thresholds.append(self.prob_thresh)
-        print(f"Click history: {self.clicks}")
-        print(f"Prob thresh history: {self.thresholds}")
-        print(f"Dice: {self.dice}\n IoU: {self.iou}\n\n")
+        print(f"N clicks: {self.clicks[-1]}")
+        print(f"Threshold: {self.thresholds[-1]}")
+        print(f"Dice: {self.dice[-1]}\nIoU: {self.iou[-1]}\n\n")
 
     @property
     def current_object_prob(self):
