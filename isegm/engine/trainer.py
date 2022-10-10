@@ -8,6 +8,7 @@ import cv2
 import torch
 import numpy as np
 from tqdm import tqdm
+from time import time
 from torch.utils.data import DataLoader
 
 from isegm.utils.log import logger, TqdmToLogger, SummaryWriterAvg
@@ -45,6 +46,8 @@ class ISTrainer(object):
         self.net_inputs = net_inputs
         self.max_num_next_clicks = max_num_next_clicks
         self.one_input_channel = one_input_channel
+        self.pos_clicks = 0
+        self.neg_clicks = 0
 
         self.click_models = click_models
         self.prev_mask_drop_prob = prev_mask_drop_prob
@@ -122,15 +125,25 @@ class ISTrainer(object):
                 click_model.eval()
 
     def run(self, num_epochs, start_epoch=None, validation=True):
+        start_time = time()
         if start_epoch is None:
             start_epoch = self.cfg.start_epoch
 
         logger.info(f'Starting Epoch: {start_epoch}')
         logger.info(f'Total Epochs: {num_epochs}')
         for epoch in range(start_epoch, num_epochs):
+            self.pos_clicks = 0
+            self.neg_clicks = 0
+            start_time_epoch = time()
             self.training(epoch)
             if validation:
                 self.validation(epoch)
+            end_time_epoch = time()
+            print(f"Elapsed time one epoch: {end_time_epoch - start_time_epoch}")
+            print(f"{self.pos_clicks} positive clicks and {self.neg_clicks} negative clicks in one epoch")
+
+        end_time = time()
+        print(f"Total elapsed time: {end_time - start_time} for {num_epochs} epochs")
 
     def training(self, epoch):
         if self.sw is None and self.is_master:
@@ -239,17 +252,18 @@ class ISTrainer(object):
                 val_metric = metric.get_epoch_value()
                 self.sw.add_scalar(tag=f'{log_prefix}Metrics/{metric.name}', value=val_metric,
                                    global_step=epoch, disable_avg=True)
-                print(f"Metric name: {metric.name}")
-                print(f"Metric get epoch value: {val_metric}")
+                # print(f"Metric name: {metric.name}")
+                # print(f"Metric get epoch value: {val_metric}")
 
                 if metric.name == 'DiceScore':
                     self.epoch_val_dice.append(val_metric)
                 elif metric.name == "AdaptiveIoU":
                     self.epoch_val_iou.append(val_metric)
                 else:
-                    print("Metric not saved")
+                    pass
+                    # print("Metric not saved")
 
-        print(f"Validation loss: {val_loss / len(tbar)}\n")
+        # print(f"Validation loss: {val_loss / len(tbar)}\n")
 
         if (epoch + 1) % 10 == 0:
             save_checkpoint(self.net, self.cfg.CHECKPOINTS_PATH, prefix=self.task_prefix, epoch=None,
@@ -293,7 +307,12 @@ class ISTrainer(object):
                     net_input = torch.cat((image, prev_output), dim=1) if self.net.with_prev_mask else image
                     prev_output = torch.sigmoid(eval_model(net_input, points)['instances'])
 
-                    points = get_next_points(prev_output, orig_gt_mask, points, click_indx + 1)
+                    points, is_positive = get_next_points(prev_output, orig_gt_mask, points, click_indx + 1)
+
+                    if is_positive:
+                        self.pos_clicks += 1
+                    else:
+                        self.neg_clicks += 1
 
                     if not validation:
                         self.net.train()
@@ -429,7 +448,7 @@ def get_next_points(pred, gt, points, click_indx, pred_thresh=0.49):
                 points[bindx, 2 * num_points - click_indx, 1] = float(coords[1])
                 points[bindx, 2 * num_points - click_indx, 2] = float(click_indx)
 
-    return points
+    return points, is_positive
 
 
 def load_weights(model, path_to_weights):

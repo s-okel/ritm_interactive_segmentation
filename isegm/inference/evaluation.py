@@ -16,20 +16,25 @@ except NameError:
 def evaluate_dataset(dataset, predictor, max_clicks, **kwargs):
     all_ious = []
     all_dices = []
+    total_pos_clicks = 0
+    total_neg_clicks = 0
 
     start_time = time()
     for index in tqdm(range(len(dataset)), leave=False):
         sample = dataset.get_sample(index)
 
-        _, sample_ious, _ = evaluate_sample(sample.image, sample.gt_mask, predictor, metric='iou',
+        _, sample_ious, _, clicks = evaluate_sample(sample.image, sample.gt_mask, predictor, metric='iou',
                                             sample_id=index, max_clicks=max_clicks, **kwargs)
-        _, sample_dices, _ = evaluate_sample(sample.image, sample.gt_mask, predictor, metric='dice',
+        _, sample_dices, _, clicks = evaluate_sample(sample.image, sample.gt_mask, predictor, metric='dice',
                                              sample_id=index, max_clicks=max_clicks, **kwargs)
         all_ious.append(sample_ious)
         all_dices.append(sample_dices)
+        total_pos_clicks += clicks[0]
+        total_neg_clicks += clicks[1]
 
     end_time = time()
     elapsed_time = end_time - start_time
+    print(f"Total positive clicks: {total_pos_clicks}, negative clicks: {total_neg_clicks}")
 
     return all_ious, all_dices, elapsed_time
 
@@ -62,4 +67,5 @@ def evaluate_sample(image, gt_mask, predictor, max_metric_thr, metric,
 
             if metric_value >= max_metric_thr and click_indx + 1 >= min_clicks:
                 break
-        return clicker.clicks_list, np.array(metric_list, dtype=np.float32), pred_probs
+    clicks = clicker.get_n_clicks()
+    return clicker.clicks_list, np.array(metric_list, dtype=np.float32), pred_probs, clicks

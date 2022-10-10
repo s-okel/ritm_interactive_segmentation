@@ -100,6 +100,9 @@ class Clicker(object):
     def __len__(self):
         return len(self.clicks_list)
 
+    def get_n_clicks(self):
+        return self.num_pos_clicks, self.num_neg_clicks
+
 
 class Click:
     def __init__(self, is_positive, coords, indx=None):
